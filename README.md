@@ -93,7 +93,7 @@ Zwei vollständige Testläufe endeten grün. Drei Tage später fiel beim Öffnen
 
 Die Ursache war an allen drei Stellen derselbe Denkfehler: Ein Zeichen wurde als Struktur behandelt, obwohl es keine ist. Ein `•` ist für Markdown kein Listenpunkt, ein schließendes Anführungszeichen ist kein Satzende, und Word verteilt `{{BUCH_AUTOR}}` intern auf mehrere Textabschnitte, sodass ein einfaches Suchen und Ersetzen den Platzhalter nicht findet.
 
-Lösung: Normalisierung der Aufzählungen vor der Konvertierung, eine Satzerkennung, die Anführungszeichen berücksichtigt, und eine Ersetzung, die Word-Absätze als Ganzes liest ([`15-titelei-platzhalter`](workflows/15-titelei-platzhalter.json) zeigt das in kompakter Form). Wichtiger war die Konsequenz: Nach jedem Lauf werden die erzeugten Dateien geöffnet. Ein grüner Durchlauf sagt nur, dass nichts abgestürzt ist.
+Lösung: Normalisierung der Aufzählungen vor der Konvertierung, eine Satzerkennung, die Anführungszeichen berücksichtigt, und eine Ersetzung, die Word-Absätze als Ganzes liest ([`15-titelei-platzhalter`](workflows/15-titelei-platzhalter.json) zeigt das in kompakter Form). Aufgefallen ist es nur, weil die erzeugten Dateien nach jedem Lauf von Hand geprüft werden. Ein grüner Durchlauf sagt nur, dass nichts abgestürzt ist.
 
 ### 4. Ein Fehler, der still geblieben wäre
 
