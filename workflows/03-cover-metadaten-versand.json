@@ -1,0 +1,2309 @@
+{
+  "name": "03 Buch – Cover, A+, Metadaten & Versand",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "wf3_trigger",
+      "name": "Start (von WF2)",
+      "position": [
+        -400,
+        -36
+      ],
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "i1",
+              "name": "buch_id",
+              "type": "string",
+              "value": "={{ $json.buch_id }}"
+            },
+            {
+              "id": "i2",
+              "name": "titel",
+              "type": "string",
+              "value": "={{ $json.titel }}"
+            },
+            {
+              "id": "i3",
+              "name": "untertitel",
+              "type": "string",
+              "value": "={{ $json.untertitel }}"
+            },
+            {
+              "id": "i4",
+              "name": "autor",
+              "type": "string",
+              "value": "={{ $json.autor }}"
+            },
+            {
+              "id": "i5",
+              "name": "nische",
+              "type": "string",
+              "value": "={{ $json.nische }}"
+            },
+            {
+              "id": "i6",
+              "name": "ordner_id",
+              "type": "string",
+              "value": "={{ $json.ordner_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf3_input",
+      "name": "Input",
+      "position": [
+        -176,
+        -36
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "cachedResultName": "Claude Sonnet 5",
+          "mode": "list",
+          "value": "claude-sonnet-5"
+        },
+        "options": {
+          "maxTokensToSample": 8000
+        }
+      },
+      "id": "447a4027-d6cd-4beb-88cb-fe416c5068f7",
+      "name": "Anthropic Chat Model4",
+      "position": [
+        56,
+        -64
+      ],
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "you@example.com",
+        "subject": "=🎉 Buch \"{{ $('Input').item.json.titel }}\" abholbereit!{{ ($('Cover_Upload_Recraft').isExecuted && $('Cover_Upload_Recraft_2').isExecuted) ? '' : ' ⚠️ Cover prüfen' }}",
+        "message": "=Moin,\ndeine Fabrik hat ein neues Buch erschaffen. Alle Dateien liegen fertig in deinem Ordner.  \nHier ist der direkte Link:\nhttps://drive.google.com/drive/folders/{{ $('Input').item.json.ordner_id }}  \n\nCover 1: {{ $('Cover_Upload_Recraft').isExecuted ? 'Kontrolle bestanden' : 'NICHT bestanden (3 Versuche), liegt als FEHLER_Cover im Ordner' }}\nCover 2: {{ $('Cover_Upload_Recraft_2').isExecuted ? 'Kontrolle bestanden' : 'NICHT bestanden (3 Versuche), liegt als FEHLER_Cover im Ordner' }}\n\nUrheberschaft-Log (Block 0-4, 6-7, 10, 12 automatisch befüllt; Block 5, 6-Auswahl, 8, 9 bitte manuell nachtragen):\nhttps://docs.google.com/document/d/{{ ($('Log erstellen').item.json.documentId || $('Log erstellen').item.json.id) }}/edit\n\nWenn du den Text gelesen und geprüft hast, bitte hier kurz freigeben (trägt sich automatisch in Block 5 ein):\nhttps://your-n8n.example.com/form/c6ff76bd-8f2e-4e8e-b762-41ba3ee9aab7?buch_id={{ $('Input').item.json.buch_id }}\n\nVielleicht lässt das Buch ja dieses mal Geld regnen.",
+        "options": {}
+      },
+      "id": "da6358bb-1cc3-4a3e-871f-584f337ddaca",
+      "name": "Send a message",
+      "position": [
+        5264,
+        -256
+      ],
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Du bist ein erstklassiger Bestseller-Experte und Copywriter für Amazon KDP. Erstelle die perfekten Verkaufs-Metadaten für einen neuen Ratgeber.\n\nHier sind deine festen Vorgaben:\nNische: '{{ $('Input').item.json.nische }}'\nBuchtitel: '{{ $('Input').item.json.titel }}'\nUntertitel: '{{ $('Input').item.json.untertitel }}'\nAutor: '{{ $('Input').item.json.autor }}'\n\nANWEISUNG:\nErstelle basierend auf diesen Daten die Verkaufstexte und die Preisstrategie und fülle die vom Output Parser vorgegebenen 9 Felder exakt aus. \n\nBeachte dabei zwingend diese inhaltlichen Vorgaben für die einzelnen Felder:\n\n1. Buchtitel: Übernimm den oben vorgegebenen Titel exakt und wortwörtlich.\n2. Untertitel: Übernimm den oben vorgegebenen Untertitel exakt und wortwörtlich.\n3. Autor: Übernimm den oben vorgegebenen Autorennamen exakt und wortwörtlich.\n4. Verkaufspreis-Empfehlung & Strategie: Analysiere die Nische. Berücksichtige die 70 % Tantiemen-Schwelle beim E-Book (2,99 € – 9,99 €) und reale Druckkosten beim Taschenbuch (üblich 12,99 € bis 19,99 €). Begründe kurz die Wahl.\n5. Buchbeschreibung (HTML): Schreibe eine verkaufsstarke Buchbeschreibung. Nutze NUR simple HTML-Tags wie <b>, <i>, <ul>, <li>, <p>. Maximal 2000 Zeichen!\n6. Suchbegriffe (Keywords): Nenne genau 7 hochrelevante KDP-Suchbegriffe. WICHTIG: Trenne die Keywords NICHT mit einem Komma, sondern nutze zwingend einen Zeilenumbruch (\\n) nach jedem Keyword.\n7. Amazon-Kategorien (Backend-Pfade): Nenne exakt 3 tiefgreifende Pfade, die mit offiziellen Hauptkategorien beginnen. WICHTIG: Trenne die Pfade NICHT mit einem Komma, sondern nutze zwingend einen Zeilenumbruch (\\n) nach jedem Pfad.\n8. Klappentext (Cover-Rückseite): Schreibe einen emotionalen Text für die Buchrückseite. Maximal 150 Wörter. KEIN HTML.\n9. A+ Content (Marketing-Banner): Erstelle Headline & Bulletpoints (3 Stück)\n\nFÜR ALLE TEXTE: Der Autor ist ein Pseudonym. Erfinde keine persönliche Lebensgeschichte, eigene Erfahrung, Berufe oder Qualifikationen des Autors (z. B. nicht \"kennt das aus eigener Erfahrung\", nicht \"als Psychologin\"). Beschreibe stattdessen, was das Buch dem Leser bietet.",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "id": "9e03f6ad-4f71-4155-adc7-5655ebab500e",
+      "name": "Metadaten-Agent",
+      "position": [
+        48,
+        -288
+      ],
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "cachedResultName": "claude-sonnet-5",
+          "mode": "list",
+          "value": "claude-sonnet-5"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Du bist ein erfahrener Art Director für hochwertigen Amazon A+ Content.\nDeine einzige Aufgabe ist es, einen hochgradig visuellen, englischen Bild-Prompt für den KI-Bildgenerator \"Recraft V4 Pro\" zu schreiben.\n\nBUCHDATEN:\nMetadaten (Zur Analyse für das Motiv und die A+ Headline):\n{{ JSON.stringify($('Metadaten-Agent').item.json.output) }}\n\nCover-Prompt:\n{{ JSON.stringify($('Cover_Promt').item.json.content.find(c => c.type === 'text').text) }}\n\nWICHTIGE REGELN FÜR DEINEN OUTPUT:\n\n1. NUR DER PROMPT: Gib absolut nichts anderes als den englischen Text aus. Keine Einleitungen. Der gesamte Prompt ist höchstens 950 Zeichen lang.\n\n2. HOMOGENITÄT ZUM COVER (WICHTIG): Das A+ Bild MUSS exakt denselben Stil haben wie das Buchcover. Nutze KEINEN Fotorealismus. Verwende denselben Basis-Stil im Prompt wie beim Cover: \"minimalist flat vector illustration, premium editorial design, clean outlines\". Erlaube keinen Fotorealismus. \n\n3. MOTIV-FINDUNG: Analysiere die Metadaten. Welches Gefühl oder welche Transformation verkauft das Buch? Erfinde eine extrem authentische, ausdrucksstarke und emotionale Szene im minimalistischen Vektor-Stil, die genau dieses Gefühl ausstrahlt. Nutze NIEMALS generische Stock-Klischees.\n\n4. TYPOGRAFIE & LAYOUT (1:1 FORMAT): Das Bild wird als exaktes Quadrat (1:1) generiert. Recraft V4 Pro platziert Text millimetergenau.\n- Nimm die kurze \"A+ Headline\" aus den Metadaten.\n- Gib die Anweisung, dass dieser Text in einer klaren, eleganten Schriftart in den negativen Raum des Bildes (z. B. ein freier, einfarbiger Hintergrundbereich) gesetzt wird.\n- Setze den exakten Text ZWINGEND in doppelte Anführungszeichen (\"...\"). Verbiete Bulletpoints!\n- Die Headline bleibt auf Deutsch, Wort für Wort wie in den Metadaten (Zeile nach \"HEADLINE:\"). Nicht übersetzen, nicht umformulieren, keinen weiteren Text ins Bild.\n\n5. KEINE NEGATIV-PROMPTS: Schreibe niemals, was du NICHT sehen willst (z.B. \"no 3D\"), sondern beschreibe ausschließlich, was da sein soll."
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 4000
+        }
+      },
+      "id": "c97803f3-9529-419f-b44b-25aaf0f01ea3",
+      "name": "A+_Prompt",
+      "position": [
+        2896,
+        -592
+      ],
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "cachedResultName": "claude-sonnet-5",
+          "mode": "list",
+          "value": "claude-sonnet-5"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Du bist ein erfahrener Art Director für minimalistische Premium-Buchcover.\nDeine einzige Aufgabe ist es, einen hochgradig visuellen englischen Bild-Prompt für den KI-Bildgenerator \"Recraft V4 Pro\" zu schreiben.\n\nBUCHDATEN:\nTitel: {{ $('Input').item.json.titel }}\nUntertitel: {{ $('Input').item.json.untertitel }}\nAutor: {{ $('Input').item.json.autor }}\n\nMETADATEN (ZUR ANALYSE):\n{{ JSON.stringify($('Metadaten-Agent').item.json.output) }}\n\nWICHTIGE REGELN FÜR DEINEN OUTPUT:\n\n1. NUR DER PROMPT: Gib absolut nichts anderes als den englischen Prompt aus. Keine Einleitungen. Der gesamte Prompt ist höchstens 950 Zeichen lang.\n\n2.MOTIV-FINDUNG (WICHTIG!): Analysiere die Metadaten präzise, um das Kernthema des Buches zu verstehen. Erfinde basierend darauf EIN einziges, starkes, cleveres und symbolisches Hauptmotiv. Denke selbstständig! Nutze keine generischen Standard-Ideen und kopiere keine alten Beispiele, sondern sei kreativ passend zum Buchinhalt.\n\n3. STIL & FARBEN: Die API erlaubt keine separaten Stil-Parameter. Beschreibe den Stil daher exakt im Prompt. Es folgt ein Beispiel, denke zwingend selbst nach, nutze nie einfach das Beispiel: \"minimalist flat vector illustration, premium editorial design, clean outlines, solid sage green background, accents in terracotta and cream white\". Erlaube keinen Fotorealismus.\n\n4. TYPOGRAFIE & LAYOUT (EXAKTE PLATZIERUNG):\nRecraft V4 Pro kann Text exakt platzieren. Beschreibe das Layout zwingend in dieser Form (Nur Layout ist vorgegeben, Inhalt muss du überlegen):\n- At the very top, large and prominent: \"[Titel exakt einfügen}\"\n- At a distance appropriate for book covers, below the title, smaller: \"[Untertitel exakt einfügen]\"\n- In the center (The image can (but doesn't have to!) even extend to the entire edge of the cover at the bottom.):\n- At the very top oder very bottom, centered: \"[Autor exakt einfügen]\"\nACHTUNG: Setze alle einzufügenden Buchtitel und Namen ZWINGEND in doppelte Anführungszeichen (\"...\"). Titel, Untertitel und Autor bleiben exakt so wie oben angegeben, auf Deutsch, nicht übersetzen. Auf dem Cover steht kein weiterer Text.\n\n5. KEINE NEGATIV-PROMPTS: Schreibe niemals, was du NICHT sehen willst (z.B. \"no 3D\"), sondern beschreibe ausschließlich das, was da sein soll."
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 4000
+        }
+      },
+      "id": "d585edfc-acd6-41d9-933e-1d153370aaf1",
+      "name": "Cover_Promt",
+      "position": [
+        400,
+        -636
+      ],
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"buchtitel\": \"Beispiel Titel\",\n  \"untertitel\": \"Beispiel Untertitel\",\n  \"autor\": \"Vorname Nachname\",\n  \"preisstrategie\": \"Beispiel Text\",\n  \"buchbeschreibung_html\": \"Beispiel Text\",\n  \"keywords\": \"Beispiel Text\",\n  \"kategorien\": \"Beispiel Text\",\n  \"klappentext\": \"Beispiel Text\",\n  \"aplus_content\": \"Beispiel Text\"\n}",
+        "autoFix": true
+      },
+      "id": "63339db0-9d3d-4622-8b15-15f3ccbef9cf",
+      "name": "Structured Output Parser1",
+      "position": [
+        184,
+        -64
+      ],
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Recraft_Cover').item.json.data[0].url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "b00b0db7-655f-4036-b00e-4026f80ea1e2",
+      "name": "Bild_download",
+      "position": [
+        1200,
+        -636
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "or",
+          "conditions": [
+            {
+              "id": "6b9d4251-3d3f-42e6-abf9-a6c127894589",
+              "leftValue": "={{ $json.urteil }}",
+              "operator": {
+                "operation": "contains",
+                "type": "string"
+              },
+              "rightValue": "KORREKT"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "a9f4b5bf-5f5c-4c08-8f82-d81bdb8388f4",
+      "name": "Cover Kontrolle",
+      "position": [
+        2000,
+        -636
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "e932ea89-f80c-44be-aaf2-695d341cc2d9",
+              "leftValue": "={{ $runIndex }}",
+              "operator": {
+                "operation": "lte",
+                "type": "number"
+              },
+              "rightValue": 2
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "d3872ee2-64d0-4c0a-8670-38811a26091b",
+      "name": "Sicherheits-Abbruch",
+      "position": [
+        2224,
+        -496
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "cachedResultName": "claude-haiku-4-5-20251001",
+          "mode": "list",
+          "value": "claude-haiku-4-5-20251001"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Du bist der Kontrolleur für die Rechtschreibung auf Buch Covern. Prüfe ob alles korrekt ist.\n\nDeine Infos:\nDer Titel: '{{ $('Input').item.json.titel }}'\nDer Untertitel: '{{ $('Input').item.json.untertitel }}'\nDer Autor: '{{ $('Input').item.json.autor }}'\n\nRegeln zur Prüfung:\n0. Zuerst: Stehen Titel, Untertitel und Autor vollständig auf dem Cover? Fehlt einer davon, steht ein anderer Titel da (z. B. englischer Text) oder steht zusätzlicher Text auf dem Cover, lautet das Urteil FEHLER.\n1. Werte stilisierte Schriftarten, eng aneinanderstehende Buchstaben oder rein optische Design-Entscheidungen NICHT als Fehler, solange die Buchstabenfolge korrekt ist. Ignoriere die Groß- und Kleinschreibung, da die Wörter als Design-Elemente (z. B. All-Caps) formatiert sein können.\n\nDEIN OUTPUT REGELWERK (STRIKT BEACHTEN):\n1. Überlege bis zum Schluss und formuliere erst dann die finale Antwort.\n2. Transkribiere zuerst exakt den Text, den du im Bild siehst, und schreibe deine komplette Überlegung und Analyse in das Feld \"analyse\".\n3. Dein finales Urteil MUSS zwingend im Feld \"urteil\" stehen.\n4. Das Feld \"urteil\" darf absolut nichts anderes enthalten als:\n- Entweder: KORREKT (wenn alles fehlerfrei ist)\n- Oder: FEHLER (bei Tippfehlern, fehlendem, falschem oder zusätzlichem Text)\n5. Antworte AUSSCHLIESSLICH im folgenden JSON-Format. Gib keinen Text vor oder nach den geschweiften Klammern aus:\n\n{\n  \"analyse\": \"Deine komplette Überlegung hier...\",\n  \"urteil\": \"Dein Urteil\"\n}"
+            }
+          ]
+        },
+        "addAttachments": true,
+        "attachmentsInputType": "binary",
+        "options": {
+          "maxTokens": 2000
+        }
+      },
+      "id": "1194c027-a08c-4875-bc0f-73799a664a59",
+      "name": "KI-Cover Kontrolle",
+      "position": [
+        1424,
+        -636
+      ],
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://external.api.recraft.ai/v1/images/generations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": {{ JSON.stringify($('Cover_Promt').item.json.content.find(c => c.type === 'text').text) }},\n  \"model\": \"recraftv4_pro\",\n  \"size\": \"2:3\"\n}",
+        "options": {}
+      },
+      "id": "630a3054-bfda-4931-856b-2ea51d7b0797",
+      "name": "Recraft_Cover",
+      "position": [
+        752,
+        -636
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CREDENTIAL_ID",
+          "name": "Recraft_V4"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "61e95bf7-b92b-4b08-803d-a301ccdc22a5",
+      "name": "Wait",
+      "position": [
+        976,
+        -636
+      ],
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e8f108cc-44b4-479b-a305-7a3eb117e9ca",
+              "name": "analyse",
+              "type": "string",
+              "value": "={{ $json.content.find(c => c.type === 'text').text }}"
+            },
+            {
+              "id": "7bd2dcde-30ae-41ab-99b4-3320d723f1f4",
+              "name": "urteil",
+              "type": "string",
+              "value": "={{ /\"urteil\"\\s*:\\s*\"?\\s*(KORREKT|FEHLER)/i.exec($json.content.find(c => c.type === 'text').text)?.[1]?.toUpperCase() || 'FEHLER' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "762ed3de-7f54-4445-ab32-3f82cfd2eba5",
+      "name": "Edit Fields3",
+      "position": [
+        1776,
+        -636
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Recraft_Cover').item.json.data[0].url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "c7142905-9315-4d97-9377-a9375ebcec6b",
+      "name": "Bild_download1",
+      "position": [
+        2448,
+        -784
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {
+        "name": "=Cover_Recraft_1_{{ $now.toFormat('yyyy-MM-dds') }}.webp",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Input').item.json.ordner_id }}"
+        },
+        "options": {}
+      },
+      "id": "fb687133-7871-4f46-ae38-1bb5810a5a66",
+      "name": "Cover_Upload_Recraft",
+      "position": [
+        2672,
+        -784
+      ],
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Recraft_Cover').item.json.data[0].url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "0-31a8-48fd-bd72-221613b3b13d",
+      "name": "Bild_download2",
+      "position": [
+        2448,
+        -400
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Recraft_Cover').item.json.data[0].url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "18429b59-dc31-42bb-a84b-4a7249b0c166",
+      "name": "Bild_download3",
+      "position": [
+        2448,
+        -592
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {
+        "name": "=FEHLER_Cover_1_{{ $now.toFormat('yyyy-MM-dds') }}.webp",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Input').item.json.ordner_id }}"
+        },
+        "options": {}
+      },
+      "id": "07b7b7a1-2ac0-4466-bb08-914e192e6419",
+      "name": "Fehler_Cover_Upload_1",
+      "position": [
+        2672,
+        -352
+      ],
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "name": "=FEHLER_Cover_1_{{ $now.toFormat('yyyy-MM-dds') }}.webp",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Input').item.json.ordner_id }}"
+        },
+        "options": {}
+      },
+      "id": "d027ee91-0ff5-46be-988e-9c33a301b0c3",
+      "name": "Fehler_Cover_Upload_2",
+      "position": [
+        2672,
+        -544
+      ],
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Recraft_Cover_2').item.json.data[0].url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "7e41ab94-4355-4a5e-9205-1509fb5fdd57",
+      "name": "Bild_download4",
+      "position": [
+        1200,
+        80
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "e932ea89-f80c-44be-aaf2-695d341cc2d9",
+              "leftValue": "={{ $runIndex }}",
+              "operator": {
+                "operation": "lte",
+                "type": "number"
+              },
+              "rightValue": 2
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "ef731f27-e811-4f0b-ac88-42236df8206b",
+      "name": "Sicherheits-Abbruch1",
+      "position": [
+        2224,
+        176
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3
+    },
+    {
+      "parameters": {},
+      "id": "9550e261-e9e2-468b-9d3f-fd41585f1355",
+      "name": "Wait4",
+      "position": [
+        976,
+        80
+      ],
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e8f108cc-44b4-479b-a305-7a3eb117e9ca",
+              "name": "analyse",
+              "type": "string",
+              "value": "={{ $json.content.find(c => c.type === 'text').text }}"
+            },
+            {
+              "id": "7bd2dcde-30ae-41ab-99b4-3320d723f1f4",
+              "name": "urteil",
+              "type": "string",
+              "value": "={{ /\"urteil\"\\s*:\\s*\"?\\s*(KORREKT|FEHLER)/i.exec($json.content.find(c => c.type === 'text').text)?.[1]?.toUpperCase() || 'FEHLER' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "edd1f3ee-da1c-4a5d-b636-7479318906b9",
+      "name": "Edit Fields4",
+      "position": [
+        1776,
+        80
+      ],
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Recraft_Cover_2').item.json.data[0].url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "1831b9d6-e479-4d28-9f88-1896c305b397",
+      "name": "Bild_download5",
+      "position": [
+        2448,
+        -112
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Recraft_Cover_2').item.json.data[0].url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "5cf2d0d6-07df-4d99-bc08-7f8c8e4348ca",
+      "name": "Bild_download6",
+      "position": [
+        2448,
+        272
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Recraft_Cover_2').item.json.data[0].url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "1e8c4549-0994-4ea8-84fe-48d34c419af0",
+      "name": "Bild_download7",
+      "position": [
+        2448,
+        80
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {
+        "name": "=FEHLER_Cover_2_{{ $now.toFormat('yyyy-MM-dds') }}.webp",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Input').item.json.ordner_id }}"
+        },
+        "options": {}
+      },
+      "id": "c6306e76-203f-43b6-98dc-579bc4409964",
+      "name": "Fehler_Cover_Upload_3",
+      "position": [
+        2672,
+        228
+      ],
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "cachedResultName": "claude-sonnet-5",
+          "mode": "list",
+          "value": "claude-sonnet-5"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Du bist ein erfahrener Art Director für minimalistische Premium-Buchcover.\nDeine einzige Aufgabe ist es, einen hochgradig visuellen englischen Bild-Prompt für den KI-Bildgenerator \"Recraft V4 Pro\" zu schreiben.\n\nBUCHDATEN:\nTitel: {{ $('Input').item.json.titel }}\nUntertitel: {{ $('Input').item.json.untertitel }}\nAutor: {{ $('Input').item.json.autor }}\n\nMETADATEN (ZUR ANALYSE):\n{{ JSON.stringify($('Metadaten-Agent').item.json.output) }}\n\nWICHTIGE REGELN FÜR DEINEN OUTPUT:\n\n1. NUR DER PROMPT: Gib absolut nichts anderes als den englischen Prompt aus. Keine Einleitungen. Der gesamte Prompt ist höchstens 950 Zeichen lang.\n\n2.MOTIV-FINDUNG (WICHTIG!): Analysiere die Metadaten präzise, um das Kernthema des Buches zu verstehen. Erfinde basierend darauf EIN einziges, starkes, cleveres und symbolisches Hauptmotiv. Denke selbstständig! Nutze keine generischen Standard-Ideen und kopiere keine alten Beispiele, sondern sei kreativ passend zum Buchinhalt.\n\n3. STIL & FARBEN: Die API erlaubt keine separaten Stil-Parameter. Beschreibe den Stil daher exakt im Prompt. Es folgt ein Beispiel, denke zwingend selbst nach, nutze nie einfach das Beispiel: \"minimalist flat vector illustration, premium editorial design, clean outlines, solid sage green background, accents in terracotta and cream white\". Erlaube keinen Fotorealismus.\n\n4. TYPOGRAFIE & LAYOUT (EXAKTE PLATZIERUNG):\nRecraft V4 Pro kann Text exakt platzieren. Beschreibe das Layout zwingend in dieser Form (Nur Layout ist vorgegeben, Inhalt muss du überlegen):\n- At the very top, large and prominent: \"[Titel exakt einfügen}\"\n- At a distance appropriate for book covers, below the title, smaller: \"[Untertitel exakt einfügen]\"\n- In the center (The image can (but doesn't have to!) even extend to the entire edge of the cover at the bottom.):\n- At the very top oder very bottom, centered: \"[Autor exakt einfügen]\"\nACHTUNG: Setze alle einzufügenden Buchtitel und Namen ZWINGEND in doppelte Anführungszeichen (\"...\"). Titel, Untertitel und Autor bleiben exakt so wie oben angegeben, auf Deutsch, nicht übersetzen. Auf dem Cover steht kein weiterer Text.\n\n5. KEINE NEGATIV-PROMPTS: Schreibe niemals, was du NICHT sehen willst (z.B. \"no 3D\"), sondern beschreibe ausschließlich das, was da sein soll."
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 4000
+        }
+      },
+      "id": "c22cb51b-fffd-4daf-98ac-3280ae394089",
+      "name": "Cover_Promt_2",
+      "position": [
+        400,
+        152
+      ],
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://external.api.recraft.ai/v1/images/generations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": {{ JSON.stringify($('Cover_Promt_2').item.json.content.find(c => c.type === 'text').text) }},\n  \"model\": \"recraftv4_pro\",\n  \"size\": \"2:3\"\n}",
+        "options": {}
+      },
+      "id": "9d395c0b-ae19-4484-9699-ff5a29c0a5ab",
+      "name": "Recraft_Cover_2",
+      "position": [
+        752,
+        152
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CREDENTIAL_ID",
+          "name": "Recraft_V4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "cachedResultName": "claude-haiku-4-5-20251001",
+          "mode": "list",
+          "value": "claude-haiku-4-5-20251001"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Du bist der Kontrolleur für die Rechtschreibung auf Buch Covern. Prüfe ob alles korrekt ist.\n\nDeine Infos:\nDer Titel: '{{ $('Input').item.json.titel }}'\nDer Untertitel: '{{ $('Input').item.json.untertitel }}'\nDer Autor: '{{ $('Input').item.json.autor }}'\n\nRegeln zur Prüfung:\n0. Zuerst: Stehen Titel, Untertitel und Autor vollständig auf dem Cover? Fehlt einer davon, steht ein anderer Titel da (z. B. englischer Text) oder steht zusätzlicher Text auf dem Cover, lautet das Urteil FEHLER.\n1. Werte stilisierte Schriftarten, eng aneinanderstehende Buchstaben oder rein optische Design-Entscheidungen NICHT als Fehler, solange die Buchstabenfolge korrekt ist. Ignoriere die Groß- und Kleinschreibung, da die Wörter als Design-Elemente (z. B. All-Caps) formatiert sein können.\n\nDEIN OUTPUT REGELWERK (STRIKT BEACHTEN):\n1. Überlege bis zum Schluss und formuliere erst dann die finale Antwort.\n2. Transkribiere zuerst exakt den Text, den du im Bild siehst, und schreibe deine komplette Überlegung und Analyse in das Feld \"analyse\".\n3. Dein finales Urteil MUSS zwingend im Feld \"urteil\" stehen.\n4. Das Feld \"urteil\" darf absolut nichts anderes enthalten als:\n- Entweder: KORREKT (wenn alles fehlerfrei ist)\n- Oder: FEHLER (bei Tippfehlern, fehlendem, falschem oder zusätzlichem Text)\n5. Antworte AUSSCHLIESSLICH im folgenden JSON-Format. Gib keinen Text vor oder nach den geschweiften Klammern aus:\n\n{\n  \"analyse\": \"Deine komplette Überlegung hier...\",\n  \"urteil\": \"Dein Urteil\"\n}"
+            }
+          ]
+        },
+        "addAttachments": true,
+        "attachmentsInputType": "binary",
+        "options": {
+          "maxTokens": 2000
+        }
+      },
+      "id": "384f60b3-3151-44ef-b44a-b5fa2f971e1f",
+      "name": "KI-Cover Kontrolle_2",
+      "position": [
+        1424,
+        80
+      ],
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "combinator": "or",
+          "conditions": [
+            {
+              "id": "6b9d4251-3d3f-42e6-abf9-a6c127894589",
+              "leftValue": "={{ $json.urteil }}",
+              "operator": {
+                "operation": "contains",
+                "type": "string"
+              },
+              "rightValue": "KORREKT"
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          }
+        },
+        "options": {}
+      },
+      "id": "8bcbd5cb-6c56-4bad-bfa2-41deb3a0817a",
+      "name": "Cover Kontrolle 2",
+      "position": [
+        2000,
+        80
+      ],
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3
+    },
+    {
+      "parameters": {
+        "name": "=Cover_Recraft_2_{{ $now.toFormat('yyyy-MM-dds') }}.webp",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Input').item.json.ordner_id }}"
+        },
+        "options": {}
+      },
+      "id": "754d7313-dab7-43fb-9f0e-f80a5fefb938",
+      "name": "Cover_Upload_Recraft_2",
+      "position": [
+        2672,
+        -112
+      ],
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "name": "=FEHLER_Cover_2_{{ $now.toFormat('yyyy-MM-dds') }}.webp",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Input').item.json.ordner_id }}"
+        },
+        "options": {}
+      },
+      "id": "52c72ce7-fb91-46b8-82ae-0ec873b6a092",
+      "name": "Fehler_Cover_Upload_4",
+      "position": [
+        2672,
+        420
+      ],
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Recraft_A+').item.json.data[0].url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "f1b34371-a98e-412d-ba71-681d72726de7",
+      "name": "Bild_download8",
+      "position": [
+        3696,
+        -592
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {},
+      "id": "d6d70621-6e4c-42f9-8700-a2825dc54e3f",
+      "name": "Wait5",
+      "position": [
+        3472,
+        -592
+      ],
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://external.api.recraft.ai/v1/images/generations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": {{ JSON.stringify($('A+_Prompt').item.json.content.find(c => c.type === 'text').text) }},\n  \"model\": \"recraftv4_pro\",\n  \"size\": \"1:1\"\n}",
+        "options": {}
+      },
+      "id": "298210f5-d6bd-4160-bf19-17057106d1fd",
+      "name": "Recraft_A+",
+      "position": [
+        3248,
+        -592
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CREDENTIAL_ID",
+          "name": "Recraft_V4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "=A+_1_Recraft_{{ $now.toFormat('yyyy-MM-dds') }}.webp",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Input').item.json.ordner_id }}"
+        },
+        "options": {}
+      },
+      "id": "85d49bf2-68d8-4553-a42e-c0eef07b09d0",
+      "name": "A+_Upload_Recraft_",
+      "position": [
+        3920,
+        -592
+      ],
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "cachedResultName": "claude-sonnet-5",
+          "mode": "list",
+          "value": "claude-sonnet-5"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Du bist ein erfahrener Art Director für hochwertigen Amazon A+ Content.\nDeine einzige Aufgabe ist es, einen hochgradig visuellen, englischen Bild-Prompt für den KI-Bildgenerator \"Recraft V4 Pro\" zu schreiben.\n\nBUCHDATEN:\nMetadaten (Zur Analyse für das Motiv und die A+ Headline):\n{{ JSON.stringify($('Metadaten-Agent').item.json.output) }}\n\nCover-Prompt:\n{{ JSON.stringify($('Cover_Promt_2').item.json.content.find(c => c.type === 'text').text) }}\n\nWICHTIGE REGELN FÜR DEINEN OUTPUT:\n\n1. NUR DER PROMPT: Gib absolut nichts anderes als den englischen Text aus. Keine Einleitungen. Der gesamte Prompt ist höchstens 950 Zeichen lang.\n\n2. HOMOGENITÄT ZUM COVER (WICHTIG): Das A+ Bild MUSS exakt denselben Stil haben wie das Buchcover. Nutze KEINEN Fotorealismus. Verwende denselben Basis-Stil im Prompt wie beim Cover: \"minimalist flat vector illustration, premium editorial design, clean outlines\". Erlaube keinen Fotorealismus. \n\n3. MOTIV-FINDUNG: Analysiere die Metadaten. Welches Gefühl oder welche Transformation verkauft das Buch? Erfinde eine extrem authentische, ausdrucksstarke und emotionale Szene im minimalistischen Vektor-Stil, die genau dieses Gefühl ausstrahlt. Nutze NIEMALS generische Stock-Klischees.\n\n4. TYPOGRAFIE & LAYOUT (1:1 FORMAT): Das Bild wird als exaktes Quadrat (1:1) generiert. Recraft V4 Pro platziert Text millimetergenau.\n- Nimm die kurze \"A+ Headline\" aus den Metadaten.\n- Gib die Anweisung, dass dieser Text in einer klaren, eleganten Schriftart in den negativen Raum des Bildes (z. B. ein freier, einfarbiger Hintergrundbereich) gesetzt wird.\n- Setze den exakten Text ZWINGEND in doppelte Anführungszeichen (\"...\"). Verbiete Bulletpoints!\n- Die Headline bleibt auf Deutsch, Wort für Wort wie in den Metadaten (Zeile nach \"HEADLINE:\"). Nicht übersetzen, nicht umformulieren, keinen weiteren Text ins Bild.\n\n5. KEINE NEGATIV-PROMPTS: Schreibe niemals, was du NICHT sehen willst (z.B. \"no 3D\"), sondern beschreibe ausschließlich, was da sein soll."
+            }
+          ]
+        },
+        "options": {
+          "maxTokens": 4000
+        }
+      },
+      "id": "ead2cdf3-156b-466c-8cb6-f73efaca3125",
+      "name": "A+_Prompt1",
+      "position": [
+        2896,
+        80
+      ],
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $('Recraft_A+1').item.json.data[0].url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "7c0e53cc-495d-498d-b42d-b73e6d8e159d",
+      "name": "Bild_download9",
+      "position": [
+        3696,
+        80
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4
+    },
+    {
+      "parameters": {},
+      "id": "adb64bcf-7d5f-4746-84b8-8361b24be25b",
+      "name": "Wait6",
+      "position": [
+        3472,
+        80
+      ],
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://external.api.recraft.ai/v1/images/generations",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": {{ JSON.stringify($('A+_Prompt1').item.json.content.find(c => c.type === 'text').text) }},\n  \"model\": \"recraftv4_pro\",\n  \"size\": \"1:1\"\n}",
+        "options": {}
+      },
+      "id": "e2cd057e-aff1-4a61-a177-ca24319285b3",
+      "name": "Recraft_A+1",
+      "position": [
+        3248,
+        80
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "CREDENTIAL_ID",
+          "name": "Recraft_V4"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "name": "=A+_2_Recraft_{{ $now.toFormat('yyyy-MM-dds') }}.webp",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Input').item.json.ordner_id }}"
+        },
+        "options": {}
+      },
+      "id": "175bcefc-c651-4915-a298-8ff6794eea05",
+      "name": "A+_Upload_Recraft_1",
+      "position": [
+        3920,
+        80
+      ],
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "combineBy": "combineByPosition",
+        "mode": "combine",
+        "options": {}
+      },
+      "id": "1dc3edef-e4b2-4f54-872f-ae3aae475cac",
+      "name": "Merge",
+      "position": [
+        4144,
+        -256
+      ],
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "cachedResultName": "Buch-Master",
+          "mode": "list",
+          "value": "GOOGLE_FILE_ID"
+        },
+        "sheetName": {
+          "__rl": true,
+          "cachedResultName": "Buch-Master",
+          "mode": "list",
+          "value": 0
+        },
+        "columns": {
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true,
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Buch-ID"
+          ],
+          "schema": [
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Pseudonym (Autor)",
+              "id": "Pseudonym (Autor)",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Buchtitel",
+              "id": "Buchtitel",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Untertitel",
+              "id": "Untertitel",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Beschreibung",
+              "id": "Beschreibung",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "7 KDP-Keywords",
+              "id": "7 KDP-Keywords",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Kategorien (Backend-Pfade)",
+              "id": "Kategorien (Backend-Pfade)",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Amazon Attribution Link",
+              "id": "Amazon Attribution Link",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Pinterest_Status",
+              "id": "Pinterest_Status",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "ASIN (E-Book)",
+              "id": "ASIN (E-Book)",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "ASIN (Taschenbuch)",
+              "id": "ASIN (Taschenbuch)",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Buch-ID",
+              "id": "Buch-ID",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Status",
+              "id": "Status",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Nische",
+              "id": "Nische",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Preisstrategie",
+              "id": "Preisstrategie",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Klappentext",
+              "id": "Klappentext",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "A+ Content",
+              "id": "A+ Content",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Ordner-ID",
+              "id": "Ordner-ID",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Freigegeben am",
+              "id": "Freigegeben am",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Fertig am",
+              "id": "Fertig am",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Planungsdaten (JSON)",
+              "id": "Planungsdaten (JSON)",
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "display": true,
+              "displayName": "Urheberschaft-Log-Link",
+              "id": "Urheberschaft-Log-Link",
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "value": {
+            "7 KDP-Keywords": "={{ $('Metadaten-Agent').item.json.output.keywords }}",
+            "A+ Content": "={{ $('Metadaten-Agent').item.json.output.aplus_content }}",
+            "Beschreibung": "={{ $('Metadaten-Agent').item.json.output.buchbeschreibung_html }}",
+            "Buch-ID": "={{ $('Input').item.json.buch_id }}",
+            "Buchtitel": "={{ $('Input').item.json.titel }}",
+            "Fertig am": "={{ $now.format('yyyy-MM-dd HH:mm') }}",
+            "Kategorien (Backend-Pfade)": "={{ $('Metadaten-Agent').item.json.output.kategorien }}",
+            "Klappentext": "={{ $('Metadaten-Agent').item.json.output.klappentext }}",
+            "Preisstrategie": "={{ $('Metadaten-Agent').item.json.output.preisstrategie }}",
+            "Pseudonym (Autor)": "={{ $('Input').item.json.autor }}",
+            "Status": "fertig",
+            "Untertitel": "={{ $('Input').item.json.untertitel }}",
+            "Urheberschaft-Log-Link": "={{ 'https://docs.google.com/document/d/' + ($('Log erstellen').item.json.documentId || $('Log erstellen').item.json.id) + '/edit' }}"
+          }
+        },
+        "options": {}
+      },
+      "id": "wf3_meta",
+      "name": "Metadaten + Status fertig",
+      "position": [
+        5040,
+        -256
+      ],
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_FILE_ID",
+          "mode": "list",
+          "cachedResultName": "Buch-Master"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 0,
+          "mode": "list",
+          "cachedResultName": "Buch-Master"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Buch-ID",
+              "lookupValue": "={{ $('Input').item.json.buch_id }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        }
+      },
+      "id": "log_planungsdaten",
+      "name": "Planungsdaten holen",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        112,
+        112
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "driveId": "myDrive",
+        "folderId": "={{ $('Input').item.json.ordner_id }}",
+        "title": "={{ 'Urheberschaft-Log – ' + $('Input').item.json.titel }}"
+      },
+      "id": "log_doc_create",
+      "name": "Log erstellen",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        4368,
+        -256
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Docs account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "let planung = {};\ntry {\n  const raw = $('Planungsdaten holen').item.json['Planungsdaten (JSON)'];\n  planung = raw ? JSON.parse(raw) : {};\n} catch (e) {\n  planung = {};\n}\n\nconst input = $('Input').item.json;\nconst meta = $('Metadaten-Agent').item.json.output;\nconst pickText = (n) => { try { const c = $(n).item.json.content; return Array.isArray(c) ? (c.find(x => x.type === 'text')?.text || '') : (c || ''); } catch (e) { return ''; } };\nconst coverPromptA = pickText('Cover_Promt');\nconst coverPromptB = pickText('Cover_Promt_2');\n\nconst heute = new Date().toISOString().slice(0, 16).replace('T', ' ');\n\nconst titelOptionen = (planung.titel_optionen || []).map((t, i) => `  ${i + 1}. ${t}`).join('\\n') || '  (keine Daten - Buch vor Einfuehrung des Logs erstellt)';\nconst untertitelOptionen = (planung.untertitel_optionen || []).map((t, i) => `  ${i + 1}. ${t}`).join('\\n') || '  (keine Daten)';\nconst kapitelListe = (planung.kapitel || []).map((k, i) => `  ${i + 1}. ${k.kapitel_titel_kurz} - ${k.beschreibung}`).join('\\n') || '  (keine Daten)';\n\nconst text = `URHEBERSCHAFT-LOG\n${input.titel}\nErstellt am: ${heute}\n\n\nBLOCK 0 - SYSTEM-DOKUMENTATION\nUebergeordnete Architektur, eingesetzte Modelle und Prompt-Versionen dieser Buch-Pipeline sind zentral dokumentiert:\nhttps://docs.google.com/document/d/GOOGLE_FILE_ID/edit\n\n\nBLOCK 1 - KOPF- UND IDENTIFIKATIONSDATEN\nBuch-ID: ${input.buch_id}\nTitel: ${input.titel}\nUntertitel: ${input.untertitel}\nPseudonym/Autor: ${input.autor}\nNische: ${input.nische}\nDrive-Ordner: https://drive.google.com/drive/folders/${input.ordner_id}\n\n\nBLOCK 2 - THEMEN-/NISCHENFINDUNG (menschliche Auswahlentscheidung)\nVorgeschlagene Titel:\n${titelOptionen}\nGewaehlter Titel: ${planung.gewaehlter_titel || input.titel}\n\nVorgeschlagene Untertitel:\n${untertitelOptionen}\nGewaehlter Untertitel: ${planung.gewaehlter_untertitel || input.untertitel}\n\nBegruendung der Nischenwahl: ${planung.nische_begruendung || input.nische}\nFreigegeben von: Herausgeber\n\n\nBLOCK 3 - KONZEPTION / GLIEDERUNG\nKapitel (aus Struktur-Agent, vor Texterstellung freigegeben):\n${kapitelListe}\n\n\nBLOCK 4 - KI-TEXTERSTELLUNG\nModell: Claude Sonnet 5 (Schreib-Agent, Kontroll-Agent, Fix-Agent im Mehrfach-Pruef-Loop)\nSprache: Deutsch\nFertigstellung Manuskript: siehe Buch-Master-Sheet, Spalte \"Fertig am\"\nManuskript: im Drive-Ordner oben\n\n\nBLOCK 5 - MENSCHLICHE REDAKTION & QUALITAETSKONTROLLE\nSTATUS: [AUSSTEHEND - Freigabe-Formular noch nicht abgeschickt]\n\n\nBLOCK 6 - COVER- & BILDGENERIERUNG\nBildgenerierung: Recraft V4 Pro (via n8n)\nPrompt-Erstellung: Claude Sonnet 5\nAutomatisierte Cover-Rechtschreibkontrolle: Claude Haiku 4.5\nVerwendeter Prompt, Variante 1: ${coverPromptA}\nVerwendeter Prompt, Variante 2: ${coverPromptB}\nBeide Varianten liegen im Drive-Ordner. Gewaehlte Variante bitte hier nachtragen: [MANUELL]\n\n\nBLOCK 7 - METADATEN-ERSTELLUNG\nErzeugt von: Metadaten-Agent (Claude Sonnet 5)\nBuchbeschreibung, Keywords, Kategorien, Preisstrategie: siehe Buch-Master-Sheet\nGeprueft von: Herausgeber [Datum nachtragen]\n\n\nBLOCK 8 - KDP-COMPLIANCE / AI-DISCLOSURE\nDisclosure Text: [MANUELL: Ja/Nein]\nDisclosure Bilder: [MANUELL: Ja/Nein]\nDatum der Angabe: [MANUELL]\nASIN (E-Book): [MANUELL]\nASIN (Taschenbuch): [MANUELL]\n\n\nBLOCK 9 - MANUELLE ARBEITSSCHRITTE AUSSERHALB N8N\nKDP-Upload (Datum): [MANUELL]\nPrint-Cover-Erstellung: [MANUELL]\nSonstiges: [MANUELL]\n\n\nBLOCK 10 - VERANTWORTLICHE PERSON\nName: Herausgeber\nKontakt: you@example.com\nFunktion: Herausgeber unter Pseudonym ${input.autor}\n\n\nBLOCK 11 - VERSIONS-/AENDERUNGSHISTORIE\n(nur bei spaeterer Bearbeitung relevant)\n\n\nBLOCK 12 - AUFBEWAHRUNG\nDieses Dokument liegt dauerhaft im Buch-Ordner (siehe Block 1). Google Drive Versionshistorie dient als Manipulationsschutz.\n`;\n\nreturn { json: { log_text: text } };"
+      },
+      "id": "log_text_code",
+      "name": "Log-Text bauen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4592,
+        -256
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentURL": "={{ ($('Log erstellen').item.json.documentId || $('Log erstellen').item.json.id) }}",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "action": "insert",
+              "text": "={{ $json.log_text }}"
+            }
+          ]
+        }
+      },
+      "id": "log_doc_update",
+      "name": "Log-Inhalt einfügen",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        4816,
+        -256
+      ],
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Docs account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "r3_if",
+      "name": "Daten vollständig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -200,
+        160
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "rv3",
+              "leftValue": "={{ !!$json.titel && !!$json.ordner_id }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          }
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "r3_load",
+      "name": "Buch aus Master laden",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        0,
+        320
+      ],
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "GOOGLE_FILE_ID"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Buch-ID",
+              "lookupValue": "={{ String($json.buch_id).trim() }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": 0
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "r3_code",
+      "name": "Daten aus Master",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        320
+      ],
+      "parameters": {
+        "jsCode": "// Fortsetzen ohne WF02: Wird WF03 nur mit einer Buch-ID gestartet (Testlauf-Starter),\n// holt dieser Zweig die Buchdaten aus dem Buch-Master.\nconst b = $input.first().json || {};\nlet gesucht = '';\ntry { gesucht = String($('Start (von WF2)').first().json.buch_id || ''); } catch (e) {}\nif (!b.Buchtitel) throw new Error('Buch-ID ' + gesucht + ' nicht im Buch-Master gefunden.');\nreturn [{ json: {\n  buch_id: String(b['Buch-ID']).trim(),\n  titel: b.Buchtitel,\n  untertitel: b.Untertitel,\n  autor: b['Pseudonym (Autor)'],\n  nische: b.Nische,\n  ordner_id: b['Ordner-ID'],\n  fortgesetzt: true\n} }];"
+      }
+    },
+    {
+      "id": "wf3_etsy_daten",
+      "name": "Etsy-Start-Daten",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        5488,
+        -256
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e1",
+              "name": "buch_id",
+              "type": "string",
+              "value": "={{ String($('Input').item.json.buch_id).trim() }}"
+            },
+            {
+              "id": "e2",
+              "name": "quelle",
+              "type": "string",
+              "value": "WF03 abholbereit"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "wf3_etsy_exec",
+      "name": "→ WF09 Etsy starten",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        5712,
+        -256
+      ],
+      "parameters": {
+        "options": {
+          "waitForSubWorkflow": false
+        },
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "WF09_ID"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "A+_Prompt": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Recraft_A+",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "A+_Prompt1": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Recraft_A+1",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "A+_Upload_Recraft_": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Merge",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "A+_Upload_Recraft_1": {
+      "main": [
+        [
+          {
+            "index": 1,
+            "node": "Merge",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model4": {
+      "ai_languageModel": [
+        [
+          {
+            "index": 0,
+            "node": "Metadaten-Agent",
+            "type": "ai_languageModel"
+          },
+          {
+            "node": "Structured Output Parser1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bild_download": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "KI-Cover Kontrolle",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Bild_download1": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Cover_Upload_Recraft",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Bild_download2": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Fehler_Cover_Upload_1",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Bild_download3": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Fehler_Cover_Upload_2",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Bild_download4": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "KI-Cover Kontrolle_2",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Bild_download5": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Cover_Upload_Recraft_2",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Bild_download6": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Fehler_Cover_Upload_4",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Bild_download7": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Fehler_Cover_Upload_3",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Bild_download8": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "A+_Upload_Recraft_",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Bild_download9": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "A+_Upload_Recraft_1",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Cover Kontrolle": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Bild_download1",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Sicherheits-Abbruch",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Cover Kontrolle 2": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Bild_download5",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Sicherheits-Abbruch1",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Cover_Promt": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Recraft_Cover",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Cover_Promt_2": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Recraft_Cover_2",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Cover_Upload_Recraft": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "A+_Prompt",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Cover_Upload_Recraft_2": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "A+_Prompt1",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Cover Kontrolle",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Edit Fields4": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Cover Kontrolle 2",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Fehler_Cover_Upload_1": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "A+_Prompt",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Fehler_Cover_Upload_2": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Recraft_Cover",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Fehler_Cover_Upload_3": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Recraft_Cover_2",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Fehler_Cover_Upload_4": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "A+_Prompt1",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "KI-Cover Kontrolle": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Edit Fields3",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "KI-Cover Kontrolle_2": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Edit Fields4",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Metadaten + Status fertig": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Send a message",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Metadaten-Agent": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Cover_Promt",
+            "type": "main"
+          },
+          {
+            "index": 0,
+            "node": "Cover_Promt_2",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Recraft_A+": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Wait5",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Recraft_A+1": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Wait6",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Recraft_Cover": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Wait",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Recraft_Cover_2": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Wait4",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Sicherheits-Abbruch": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Bild_download3",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Bild_download2",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Sicherheits-Abbruch1": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Bild_download7",
+            "type": "main"
+          }
+        ],
+        [
+          {
+            "index": 0,
+            "node": "Bild_download6",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "index": 0,
+            "node": "Metadaten-Agent",
+            "type": "ai_outputParser"
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Bild_download",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Wait4": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Bild_download4",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Wait5": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Bild_download8",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Wait6": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Bild_download9",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Log erstellen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log erstellen": {
+      "main": [
+        [
+          {
+            "node": "Log-Text bauen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log-Text bauen": {
+      "main": [
+        [
+          {
+            "node": "Log-Inhalt einfügen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log-Inhalt einfügen": {
+      "main": [
+        [
+          {
+            "node": "Metadaten + Status fertig",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input": {
+      "main": [
+        [
+          {
+            "node": "Planungsdaten holen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Planungsdaten holen": {
+      "main": [
+        [
+          {
+            "node": "Metadaten-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start (von WF2)": {
+      "main": [
+        [
+          {
+            "node": "Daten vollständig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daten vollständig?": {
+      "main": [
+        [
+          {
+            "node": "Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buch aus Master laden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buch aus Master laden": {
+      "main": [
+        [
+          {
+            "node": "Daten aus Master",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daten aus Master": {
+      "main": [
+        [
+          {
+            "node": "Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Etsy-Start-Daten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Etsy-Start-Daten": {
+      "main": [
+        [
+          {
+            "node": "→ WF09 Etsy starten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "binaryMode": "separate",
+    "errorWorkflow": "ERROR_WORKFLOW_ID"
+  }
+}

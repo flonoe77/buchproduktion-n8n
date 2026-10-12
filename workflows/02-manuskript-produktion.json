@@ -1,0 +1,2017 @@
+{
+  "name": "02 Buch – Produktion (Text + DOCX)",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "wf2_trigger",
+      "name": "Start (von WF1)",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -208,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "i1",
+              "name": "buch_id",
+              "type": "string",
+              "value": "={{ $json.buch_id }}"
+            },
+            {
+              "id": "i2",
+              "name": "titel",
+              "type": "string",
+              "value": "={{ $json.titel }}"
+            },
+            {
+              "id": "i3",
+              "name": "untertitel",
+              "type": "string",
+              "value": "={{ $json.untertitel }}"
+            },
+            {
+              "id": "i4",
+              "name": "autor",
+              "type": "string",
+              "value": "={{ $json.autor }}"
+            },
+            {
+              "id": "i5",
+              "name": "nische",
+              "type": "string",
+              "value": "={{ $json.nische }}"
+            },
+            {
+              "id": "i6",
+              "name": "ordner_id",
+              "type": "string",
+              "value": "={{ $json.ordner_id }}"
+            },
+            {
+              "id": "i7",
+              "name": "kapitel",
+              "type": "array",
+              "value": "={{ typeof $json.kapitel_json === 'string' ? JSON.parse($json.kapitel_json) : ($json.kapitel || $json.kapitel_json) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf2_input",
+      "name": "Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        0,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7782e483-6ce1-4b40-b956-f33d5af1ea00",
+              "name": "kapitel_liste",
+              "value": "={{ $('Input').item.json.kapitel }}",
+              "type": "array"
+            },
+            {
+              "id": "b1d3d636-68b1-4084-bc8c-41988d6b6e4b",
+              "name": "titel",
+              "value": "={{ $('Input').item.json.titel }}",
+              "type": "string"
+            },
+            {
+              "id": "0d84c67a-365b-479e-a50f-2e3dfac26acd",
+              "name": "nische",
+              "value": "={{ $('Input').item.json.nische }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        800,
+        432
+      ],
+      "id": "c9afabfe-4ddf-4e7b-b699-df8e482e4dd2",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "kapitel_liste",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        432
+      ],
+      "id": "765ee7dd-86ec-44ad-9078-2d3a1fb146cc",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1248,
+        432
+      ],
+      "id": "806a127d-731d-4aba-a12d-f202bd01eaa3",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "amount": 21
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1536,
+        432
+      ],
+      "id": "497a61e5-091c-456d-85b9-92c5219cd4d9",
+      "name": "Wait1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Schreibe jetzt ausschließlich das folgende Kapitel. Halte dich inhaltlich exakt an diese Vorgabe:\n\nKapitel-Titel: {{ $json.kapitel_liste.kapitel_titel_kurz }}\nInhaltliche Anweisung: {{ $json.kapitel_liste.beschreibung }}\n\nBAUFORM DIESES KAPITELS (verbindlich): {{ $json.bauform }}\n\nHalte dich an diese Bauform. Sie ist bewusst fuer dieses eine Kapitel gewaehlt, damit sich die Kapitel voneinander unterscheiden. Uebernimm nicht das Muster eines vorherigen Kapitels.\n\nLAENGE (verbindlich): Dieses Kapitel muss mindestens 2.800 Wörter umfassen, Zielkorridor 2.800 bis 3.200 Wörter. Erreiche die Länge ausschliesslich durch Substanz: ein ausformuliertes Praxisbeispiel mit Namen und konkreter Situation, eine Schritt-für-Schritt-Anleitung, typische Fehler und wie man sie vermeidet, sowie eine kurze Checkliste zum Nachmachen. Fülle niemals mit Wiederholungen, Allgemeinplätzen, Ankündigungen dessen was du gleich schreibst, oder Zusammenfassungen des bereits Gesagten.\n\nRegel: Beginne sofort mit dem Fließtext oder der ersten Zwischenüberschrift. Schreibe keine Einleitungen wie \"Hier ist das Kapitel\" oder \"Gerne schreibe ich das\".",
+        "options": {
+          "systemMessage": "=Du bist ein erstklassiger Bestseller-Autor und Experte für Ratgeber-Literatur auf Amazon KDP.\nDeine Aufgabe ist es, exakt EIN Kapitel für ein neues Buch zu schreiben.\n\n--- 1. BUCH-FUNDAMENT ---\n(Behalte die Zielgruppe immer im Hinterkopf)\nBuchtitel: {{ $('Input').item.json.titel }} - {{ $('Input').item.json.untertitel }}\nNische & Zielgruppe: {{ $('Input').item.json.nische }}\n\n--- 2. TONALITÄT & INHALT ---\n- Stil: Empathisch, auf Augenhöhe, modern, aber hochprofessionell und direkt.\n- Tiefe: Produziere keine oberflächliche KI-Massenware. Biete echte inhaltliche Tiefe, konkrete Praxisbeispiele und sofort umsetzbare Schritte für die Leser.\n- Verbotene KI-Phrasen: Nutze NIEMALS Floskeln wie \"Zusammenfassend lässt sich sagen\", \"In der heutigen schnelllebigen Welt\", \"Tauchen wir ein\" oder \"Es ist wichtig zu beachten\".\n\n--- 3. FORMATIERUNG & STRUKTUR ---\n- Überschriften & Text: Strukturiere den Text mit sauberem Markdown (## für Zwischenüberschriften, **Fettdruck** für Kernaussagen).\n- Listen & Aufzählungen: Verwende für Listen NIEMALS typische Markdown-Zeichen wie Bindestriche (-) oder Sternchen (*). Nutze stattdessen IMMER das echte Bullet-Point-Zeichen (•) gefolgt von einem Leerzeichen. \n- Tabellen-Verbot: Erzeuge niemals Markdown-Tabellen (mit | Trennzeichen). Präsentiere Daten immer als saubere (•) Aufzählungsliste.\n- REFLEXIONSFRAGEN (WICHTIG): Stelle am Ende des Kapitels 3 Reflexionsfragen für den Leser. Zeichne dafür NIEMALS Schreib-Linien (Unterstriche wie ____). Formuliere einen kurzen, motivierenden Einleitungssatz, der sich auf das soeben geschriebene Kapitel bezieht und den Leser auffordert, Stift und Papier zu nehmen und die Fragen zu beantworten. Variiere diesen Satz nach jedem Kapitel, um Wiederholungen zu vermeiden.\n\n--- 4. MATHEMATISCHE KORREKTHEIT ---\nWenn du Rechenbeispiele, Fallstudien oder Einkommensrechnungen erstellst, rechne zwingend logisch und absolut fehlerfrei! Prüfe deine eigenen Zahlen: Summen müssen exakt aufgehen. Ein Netto-Wert kann niemals höher sein als der Brutto-Wert. Erfinde keine übertriebenen oder unrealistischen Zahlen. Bleibe absolut bodenständig und mathematisch korrekt.\n\n--- 5. KEINE META-KOMMENTARE (STRIKTE REGEL) ---\nDu schreibst direkt das finale Manuskript. Du bist KEIN Chatbot und KEIN Assistent. \n- Antworte IMMER UND AUSSCHLIESSLICH mit dem reinen Buchtext. \n- Schreibe NIEMALS Einleitungen wie \"Hier ist das Kapitel\".\n- Stelle NIEMALS Rückfragen an den Nutzer oder beschwere dich über fehlende Vorgaben. Improvisiere fehlende Inhalte passend zum Buchthema.\n\n--- 6. REGEL FÜR KORREKTUREN (FALLS NÖTIG) ---\nWenn du eine Eingabe erhältst, die mit \"FEHLER:\" beginnt, hat dein Lektor einen Fehler gefunden. \nEntschuldige dich niemals und erkläre deine Änderung nicht! Nimm exakt deinen vorherigen Text, repariere NUR die kritisierte Stelle und gib das komplette, vollständige Kapitel in voller Länge noch einmal aus.",
+          "maxIterations": 4
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1824,
+        432
+      ],
+      "id": "98c4b670-cc7b-47d7-a0dd-8a15952dd262",
+      "name": "Schreib-Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Hier ist das Kapitel zur Prüfung:\n{{ $json.output }}",
+        "options": {
+          "systemMessage": "DEINE ROLLE: FAKTEN- UND FORMPRUEFER\nDu pruefst ein Buchkapitel auf harte, objektiv nachweisbare Fehler. Du schreibst das Kapitel NICHT neu. Deine Standardantwort ist PASST.\n\nNUR DIESE DREI FEHLERARTEN ZAEHLEN:\n1. Rechenfehler: Eine Rechnung im Text geht nicht auf, eine Summe stimmt nicht, ein Netto-Wert ist hoeher als der zugehoerige Brutto-Wert.\n2. Verbotene Formatierung: Das Kapitel enthaelt eine Markdown-Tabelle (Zeilen mit | ... |). Erlaubt sind nur Fliesstext, Ueberschriften und Aufzaehlungslisten.\n3. Direkter Widerspruch: Dieselbe konkrete Angabe steht im selben Kapitel zweimal mit unterschiedlichen Werten (z. B. eine Person ist einmal 21 und einmal 23 Jahre alt; ein Ereignis liegt einmal im Mai und einmal im Juli).\n\nDAS SIND AUSDRUECKLICH KEINE FEHLER, melde sie NIE:\n- Zeitangaben, die nebeneinander moeglich sind (z. B. 26 Jahre verheiratet und ein 21-jaehriges Kind).\n- Ungefaehre oder unterschiedliche Zeitspannen in verschiedenen Abschnitten, solange sie sich nicht direkt widersprechen.\n- Fehlende Erklaerungen, Luecken in der Chronologie, unklare Reihenfolge von Szenen.\n- Stil, Lesefluss, Wiederholungen, wiederkehrende Beispielnamen, Wortwahl.\n- Alles, was erst mit einer zusaetzlichen Annahme zum Fehler wird.\n\nENTSCHEIDUNGSREGEL: Koennen beide Angaben gleichzeitig wahr sein, ist es KEIN Fehler. Im Zweifel PASST.\n\nDEIN OUTPUT:\n- Kein Fehler nach den drei Punkten: antworte ausschliesslich mit dem einen Wort PASST\n- Sonst genau eine Zeile, nur der EINE schwerwiegendste Fehler, maximal 30 Woerter:\nFEHLER: [was genau falsch ist und korrigiert werden muss]\nSchreibe nie eine Begruendung, warum etwas kein Fehler ist, und nie beides zusammen."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2176,
+        432
+      ],
+      "id": "b6bae6a8-9867-4f31-a1ed-c04b002211c4",
+      "name": "Kontroll-Agent"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 3,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "4ccf8763-a065-4a0f-b824-9e941e6323df",
+              "leftValue": "={{ $json.output }}",
+              "operator": {
+                "operation": "contains",
+                "type": "string"
+              },
+              "rightValue": "PASST"
+            },
+            {
+              "id": "limit-guard-001",
+              "leftValue": "={{ $json.korrektur_limit_erreicht }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2528,
+        352
+      ],
+      "id": "e14914aa-17f5-457c-8868-7aaa851687c5",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cf80353b-4c40-4873-ab4b-de50b400a073",
+              "name": "output",
+              "type": "string",
+              "value": "={{ Number($json.korrektur_versuche) > 1 ? $('Fix-Agent').last().json.output : $('Schreib-Agent').last().json.output }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2816,
+        720
+      ],
+      "id": "fa4ac47e-4ae2-4a46-9c37-61d06e70685a",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Du bist ein präziser Korrektor. Überarbeite das folgende Kapitel exakt basierend auf dem Feedback des Lektors. \n\nWICHTIGE REGELN:\n1. Gib als Antwort das KOMPLETTE, vollständig ausformulierte Kapitel inklusive der Korrekturen aus.\n2. SCHREIBE KEINE EINLEITUNG UND KEINEN SCHLUSSSATZ! (Kein \"Hier ist die Korrektur:\" etc.). Beginne direkt mit dem ersten Wort des Buchtextes.\n\nFEHLER-FEEDBACK DES LEKTORS: \n{{ $json.output }}\n\nURSPRÜNGLICHES KAPITEL:\n{{ Number($json.korrektur_versuche) > 1 ? $('Fix-Agent').last().json.output : $('Schreib-Agent').last().json.output }}",
+        "options": {
+          "systemMessage": "=",
+          "maxIterations": 4
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        2752,
+        320
+      ],
+      "id": "e68dc8d5-c222-4c50-aeed-c0943037f2ae",
+      "name": "Fix-Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "output",
+              "renameField": true,
+              "outputFieldName": "buch_manuskript"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1536,
+        160
+      ],
+      "id": "ca123acc-a627-4a7c-8097-268e2c0073f6",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Schreibe das Nachwort für mein Ratgeber-Buch.\nTitel: {{ $('Input').item.json.titel }}\nUntertitel: {{ $('Input').item.json.untertitel }}\nAutor: {{ $('Input').item.json.autor }}\nNische: {{ $('Input').item.json.nische }}\n\nRegeln:\n\nFasse dich kurz (max. 200 Wörter). Bedanke dich beim Leser für seine Zeit.\n\nBaue einen emotionalen und direkten Call-to-Action ein: Bitte den Leser eindringlich und ehrlich (aber nicht nervig) darum, eine kurze Bewertung auf Amazon zu hinterlassen, da dies unabhängigen Autoren wie dir enorm beim Überleben hilft. Es ist wirklich unglaublich wichtig, dass so viele Leute wie möglich rezensieren.\n\nUnterschreibe am Ende mit dem Namen des Autors.\n\nSchreibe nur den reinen Buchtext, keine Einleitung, keine Meta-Kommentare. Nutze als Überschrift \"## Nachwort & eine kleine Bitte\".",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1472,
+        -336
+      ],
+      "id": "864cfcd8-b792-48d0-a4d8-402f7c5ee67a",
+      "name": "Nachwort-Agent"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "53b1abec-53d9-456b-adc5-b3ca775c1afe",
+              "name": "fertiges_Buch",
+              "value": "={{ Object.values($json.buch_manuskript).join('\\n\\n\\n---\\n\\n\\n') }}\n\n---\n\n{{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1888,
+        -96
+      ],
+      "id": "f0e17d6a-f8a6-4ac7-8cf8-24a21f236f09",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "fertiges_Buch",
+        "options": {
+          "fileName": "manuskript.md"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        2240,
+        -96
+      ],
+      "id": "25d22697-27a6-4302-86ce-b0fe6be27c4d",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "GOOGLE_FILE_ID",
+          "mode": "list",
+          "cachedResultName": "Master_Print_6x9_Front.doc"
+        },
+        "options": {
+          "binaryPropertyName": "master_print_front"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2528,
+        -192
+      ],
+      "id": "112e2f17-78aa-4491-b7c9-c524194c7555",
+      "name": "Download Print Master",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "GOOGLE_FILE_ID",
+          "mode": "list",
+          "cachedResultName": "Master_EBook_Front.doc"
+        },
+        "options": {
+          "binaryPropertyName": "master_ebook_front"
+        }
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2528,
+        112
+      ],
+      "id": "06e5cb64-0ed6-4b52-a2bc-50859eca775d",
+      "name": "Download E-Book Master",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lese die Dateien von der Festplatte in den Arbeitsspeicher\nconst frontBuffer = await this.helpers.getBinaryDataBuffer(0, 'master_print_front');\nconst mdBuffer = await this.helpers.getBinaryDataBuffer(0, 'data');\n\n// Wandle sie in reinen Base64-Text um und speichere sie als JSON\n$input.item.json.front_base64 = frontBuffer.toString('base64');\n$input.item.json.md_base64 = mdBuffer.toString('base64');\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2816,
+        -192
+      ],
+      "id": "23000a78-8431-42b1-afb6-66a9a6c779c5",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lese die Dateien von der Festplatte in den Arbeitsspeicher\nconst frontBuffer = await this.helpers.getBinaryDataBuffer(0, 'master_ebook_front');\nconst mdBuffer = await this.helpers.getBinaryDataBuffer(0, 'data');\n\n// Wandle sie in reinen Base64-Text um und speichere sie als JSON\n$input.item.json.front_base64 = frontBuffer.toString('base64');\n$input.item.json.md_base64 = mdBuffer.toString('base64');\n\nreturn $input.item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2816,
+        112
+      ],
+      "id": "4fc7bbc4-b98a-46c5-8687-1e03309df83e",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloudconvert.com/v2/jobs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "cloudConvertApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tasks\": {\n    \"import-front\": {\n      \"operation\": \"import/base64\",\n      \"file\": \"{{ $json.front_base64 }}\",\n      \"filename\": \"front.doc\"\n    },\n    \"import-markdown\": {\n      \"operation\": \"import/base64\",\n      \"file\": \"{{ $json.md_base64 }}\",\n      \"filename\": \"inhalt.md\"\n    },\n    \"convert-md\": {\n      \"operation\": \"convert\",\n      \"input\": \"import-markdown\",\n      \"output_format\": \"docx\"\n    },\n    \"replace-vars\": {\n      \"operation\": \"convert\",\n      \"input\": \"import-front\",\n      \"output_format\": \"docx\"\n    },\n    \"export-front\": {\n      \"operation\": \"export/url\",\n      \"input\": \"replace-vars\"\n    },\n    \"export-inhalt\": {\n      \"operation\": \"export/url\",\n      \"input\": \"convert-md\"\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3104,
+        -192
+      ],
+      "id": "65e6ab1d-8e52-41f2-b340-dec5b2e233d4",
+      "name": "Taschenbuch_bestellen",
+      "credentials": {
+        "cloudConvertApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "CloudConvert account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloudconvert.com/v2/jobs",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "cloudConvertApi",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"tasks\": {\n    \"import-front\": {\n      \"operation\": \"import/base64\",\n      \"file\": \"{{ $json.front_base64 }}\",\n      \"filename\": \"front_ebook.doc\"\n    },\n    \"replace-vars\": {\n      \"operation\": \"convert\",\n      \"input\": \"import-front\",\n      \"output_format\": \"docx\"\n    },\n    \"export-result\": {\n      \"operation\": \"export/url\",\n      \"input\": \"replace-vars\"\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3104,
+        112
+      ],
+      "id": "d303a021-7562-4a79-ab88-afc7976b2e36",
+      "name": "E-Book_bestellen",
+      "credentials": {
+        "cloudConvertApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "CloudConvert account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3328,
+        -192
+      ],
+      "id": "66518da0-3c7a-4f97-9660-fe55aba3c72e",
+      "name": "Wait2"
+    },
+    {
+      "parameters": {
+        "amount": 30
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        3328,
+        112
+      ],
+      "id": "0909f97a-6cae-4dc1-9108-497c695da818",
+      "name": "Wait3"
+    },
+    {
+      "parameters": {
+        "url": "=https://sync.api.cloudconvert.com/v2/jobs/{{ $json.data.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "cloudConvertApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3552,
+        -192
+      ],
+      "id": "c86666cb-7d4f-4ae5-bf53-d0ab15d77507",
+      "name": "Taschenbuch_abfragen",
+      "credentials": {
+        "cloudConvertApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "CloudConvert account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "=https://sync.api.cloudconvert.com/v2/jobs/{{ $json.data.id }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "cloudConvertApi",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3552,
+        112
+      ],
+      "id": "4e51fb0e-c682-4125-8a27-2c8d60ba5dc5",
+      "name": "E-Book_abfragen",
+      "credentials": {
+        "cloudConvertApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "CloudConvert account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.data.tasks.filter(t => t.name == 'export-front')[0].result.files[0].url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3776,
+        -288
+      ],
+      "id": "facba7f4-5c6c-48c7-a3d0-034bc85d46f1",
+      "name": "Print_Titel_Download"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.data.tasks.filter(t => t.name == 'export-inhalt')[0].result.files[0].url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3776,
+        -96
+      ],
+      "id": "3294c88f-33d3-4fc0-8ab9-971e21aa2021",
+      "name": "Buch_Text_Download"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.data.tasks.filter(t => t.name == 'export-result')[0].result.files[0].url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        3776,
+        112
+      ],
+      "id": "0b3c34cf-7ed9-485a-971d-8204e5b1a973",
+      "name": "E-Book_Titel_Download"
+    },
+    {
+      "parameters": {
+        "name": "=PRINT_TITEL_{{ $('Input').item.json.titel }}_{{ $now.toFormat('yyyy-MM-dd') }}.docx",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Input').item.json.ordner_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        4000,
+        -288
+      ],
+      "id": "6b952623-8ecc-4857-a627-497c213b7b5b",
+      "name": "Upload Taschenbuch Titel",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "name": "=PRINT_TEXT_{{ $('Input').item.json.titel }}_{{ $now.toFormat('yyyy-MM-dd') }}.docx",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Input').item.json.ordner_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        4000,
+        -96
+      ],
+      "id": "ba25cf64-8275-4683-a0b3-7a6d8fec7683",
+      "name": "Upload Buch Text",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "name": "=E_BOOK_TITEL_{{ $('Input').item.json.titel }}_{{ $now.toFormat('yyyy-MM-dd') }}.docx",
+        "driveId": {
+          "__rl": true,
+          "value": "My Drive",
+          "mode": "list",
+          "cachedResultName": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Input').item.json.ordner_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        4000,
+        112
+      ],
+      "id": "17bd310f-f85f-4f4d-b116-3391be373dbc",
+      "name": "Upload E-Book Titel",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4224,
+        -112
+      ],
+      "id": "229f5f8c-ec95-4cce-b42d-57228d56a7a1",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-5",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {
+          "maxTokensToSample": 16000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        1840,
+        656
+      ],
+      "id": "99b23db6-560f-4cba-a684-63f65a2e4530",
+      "name": "Anthropic Chat Model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-5",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {
+          "maxTokensToSample": 8000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        2256,
+        656
+      ],
+      "id": "2b0304bf-362e-40c5-a8dd-4c14ee4ae221",
+      "name": "Anthropic Chat Model5",
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-5",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {
+          "maxTokensToSample": 16000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        2832,
+        544
+      ],
+      "id": "fc915fa0-8d5e-4b6f-afa2-7031caceb4d0",
+      "name": "Anthropic Chat Model6",
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-5",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        1552,
+        -112
+      ],
+      "id": "a7d78b96-9695-48f7-bd21-f0c27a905e0f",
+      "name": "Anthropic Chat Model7",
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $execution.id }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        1968,
+        656
+      ],
+      "id": "b4580425-f3d8-4173-af4f-1d233fd71727",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "GOOGLE_FILE_ID",
+          "cachedResultName": "Buch-Master"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "list",
+          "value": 0,
+          "cachedResultName": "Buch-Master"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": [
+            "Buch-ID"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true,
+          "schema": [
+            {
+              "id": "Pseudonym (Autor)",
+              "displayName": "Pseudonym (Autor)",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Buchtitel",
+              "displayName": "Buchtitel",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Untertitel",
+              "displayName": "Untertitel",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Beschreibung",
+              "displayName": "Beschreibung",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "7 KDP-Keywords",
+              "displayName": "7 KDP-Keywords",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Kategorien (Backend-Pfade)",
+              "displayName": "Kategorien (Backend-Pfade)",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Amazon Attribution Link",
+              "displayName": "Amazon Attribution Link",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pinterest_Status",
+              "displayName": "Pinterest_Status",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ASIN (E-Book)",
+              "displayName": "ASIN (E-Book)",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ASIN (Taschenbuch)",
+              "displayName": "ASIN (Taschenbuch)",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Buch-ID",
+              "displayName": "Buch-ID",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Nische",
+              "displayName": "Nische",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Preisstrategie",
+              "displayName": "Preisstrategie",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Klappentext",
+              "displayName": "Klappentext",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "A+ Content",
+              "displayName": "A+ Content",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Ordner-ID",
+              "displayName": "Ordner-ID",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Freigegeben am",
+              "displayName": "Freigegeben am",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Fertig am",
+              "displayName": "Fertig am",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Planungsdaten (JSON)",
+              "displayName": "Planungsdaten (JSON)",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Urheberschaft-Log-Link",
+              "displayName": "Urheberschaft-Log-Link",
+              "type": "string",
+              "display": true,
+              "required": false,
+              "canBeUsedToMatch": true
+            }
+          ],
+          "value": {
+            "Buch-ID": "={{ $('Input').item.json.buch_id }}",
+            "Status": "geschrieben"
+          }
+        },
+        "options": {}
+      },
+      "id": "wf2_status",
+      "name": "Status: geschrieben",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        4512,
+        -112
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "h1",
+              "name": "buch_id",
+              "type": "string",
+              "value": "={{ $('Input').item.json.buch_id }}"
+            },
+            {
+              "id": "h2",
+              "name": "titel",
+              "type": "string",
+              "value": "={{ $('Input').item.json.titel }}"
+            },
+            {
+              "id": "h3",
+              "name": "untertitel",
+              "type": "string",
+              "value": "={{ $('Input').item.json.untertitel }}"
+            },
+            {
+              "id": "h4",
+              "name": "autor",
+              "type": "string",
+              "value": "={{ $('Input').item.json.autor }}"
+            },
+            {
+              "id": "h5",
+              "name": "nische",
+              "type": "string",
+              "value": "={{ $('Input').item.json.nische }}"
+            },
+            {
+              "id": "h6",
+              "name": "ordner_id",
+              "type": "string",
+              "value": "={{ $('Input').item.json.ordner_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf2_handoff",
+      "name": "WF3-Daten",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3136,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "cachedResultName": "Buch 3 – Cover, A+, Metadaten & Versand",
+          "mode": "list",
+          "value": "WF03_ID"
+        },
+        "options": {}
+      },
+      "id": "wf2_exec",
+      "name": "→ WF3 (Cover & Versand)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        3360,
+        208
+      ]
+    },
+    {
+      "id": "korr_count",
+      "name": "Korrektur-Zaehler",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2352,
+        432
+      ],
+      "parameters": {
+        "jsCode": "// Zaehlt die Korrekturrunden PRO KAPITEL und begrenzt sie.\n// Ohne diesen Zaehler koennen Kontroll-Agent und Fix-Agent endlos\n// gegeneinander laufen und API-Guthaben verbrennen.\n\nconst MAX_VERSUCHE = 2;\n\nconst store = $getWorkflowStaticData('node');\nconst execId = String($execution.id);\n\n// Bei jedem neuen Workflow-Lauf den Speicher komplett leeren\nif (store.execId !== execId) {\n  for (const k of Object.keys(store)) { delete store[k]; }\n  store.execId = execId;\n}\n\n// Kapitel eindeutig identifizieren\nlet kapitel = '';\n// Kapitel ueber den Node vor dem Schreib-Agent bestimmen. \"Loop Over Items\"\n// liefert mit .first() den leeren Done-Ausgang, nicht das laufende Kapitel.\ntry { kapitel = String($('Bauform waehlen').last().json.kapitel_liste.kapitel_titel_kurz || ''); } catch (e) {}\nif (!kapitel) { kapitel = 'kapitel_' + $runIndex; }\n\nconst key = 'k::' + kapitel;\nstore[key] = (Number(store[key]) || 0) + 1;\nconst versuche = store[key];\n\nconst rein = $input.first().json || {};\nconst urteil = String(rein.output || '');\nconst limitErreicht = versuche >= MAX_VERSUCHE;\n\nreturn [{ json: Object.assign({}, rein, {\n  korrektur_versuche: versuche,\n  korrektur_limit_erreicht: limitErreicht,\n  kapitel_key: kapitel,\n  durchgelassen_trotz_fehler: limitErreicht && urteil.indexOf('PASST') === -1\n}) }];"
+      }
+    },
+    {
+      "id": "bauform",
+      "name": "Bauform waehlen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        432
+      ],
+      "parameters": {
+        "jsCode": "// Gibt jedem Kapitel eine andere innere Bauform, damit nicht jedes Kapitel\n// und nicht jedes Buch demselben Muster folgt. Deterministisch: gleiches Buch\n// ergibt immer dieselbe Abfolge, verschiedene Buecher starten versetzt.\n\nconst BAUFORMEN = [\n  'PROBLEM-LOESUNG: Steige mit der konkreten Situation ein, in der das Problem im Alltag auftritt. Erklaere dann die Ursache dahinter. Danach die Loesungsschritte in klarer Reihenfolge. Schliesse mit dem typischen Rueckschlag und wie der Leser ihn abfaengt.',\n  'FALLBEISPIEL ZUERST: Beginne mit einer kurzen, konkreten Szene aus dem Leben einer erfundenen, aber realistischen Person mit Namen und Alter. Analysiere danach, was in dieser Szene eigentlich passiert ist. Uebertrage es zum Schluss auf den Leser und seine eigene Lage.',\n  'FEHLER-KORREKTUR: Baue das Kapitel entlang der vier bis sechs haeufigsten Fehler zu diesem Thema. Jeder Fehler bekommt eine eigene Zwischenueberschrift, eine kurze Erklaerung warum ihn so viele machen, und direkt danach die konkrete Korrektur.',\n  'FRAGE-ANTWORT: Formuliere fuenf bis sieben echte Fragen, die sich ein Betroffener zu diesem Thema wirklich stellt. Jede Frage wird zur Zwischenueberschrift und ausfuehrlich und praktisch beantwortet. Keine Alibi-Fragen, nur solche, die jemand tatsaechlich googeln wuerde.',\n  'ZEITVERLAUF: Gliedere das Kapitel entlang eines Zeitablaufs, zum Beispiel Woche 1 bis Woche 4, die ersten Tage bis der neue Zustand stabil ist, oder ein typischer Tagesablauf von morgens bis abends. Jeder Abschnitt beschreibt konkret, was in diesem Zeitraum zu tun ist und was sich veraendert.',\n  'MYTHOS UND FAKT: Nimm vier bis fuenf verbreitete Annahmen zu diesem Thema. Benenne jede Annahme, pruefe sie sachlich, und stelle dem gegenueber, was tatsaechlich hilft. Wirke dabei nicht belehrend, sondern entlastend.'\n];\n\nfunction hash(s) {\n  let h = 0;\n  for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) >>> 0; }\n  return h;\n}\n\nlet buchTitel = '';\ntry { buchTitel = String($('Input').first().json.titel || ''); } catch (e) { buchTitel = ''; }\n\nconst versatz = hash(buchTitel);\nconst index = (versatz + $runIndex) % BAUFORMEN.length;\n\nconst rein = $input.first().json || {};\nreturn [{ json: Object.assign({}, rein, {\n  bauform: BAUFORMEN[index],\n  bauform_nr: index + 1\n}) }];"
+      }
+    },
+    {
+      "id": "m_buch_nw",
+      "name": "Buch + Nachwort",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1700,
+        -96
+      ],
+      "parameters": {
+        "combineBy": "combineByPosition",
+        "mode": "combine",
+        "numberInputs": 2,
+        "options": {}
+      }
+    },
+    {
+      "id": "r_if",
+      "name": "Daten vollständig?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -208,
+        400
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "rv1",
+              "leftValue": "={{ !!($json.kapitel_json || $json.kapitel) && !!$json.titel }}",
+              "operator": {
+                "operation": "true",
+                "singleValue": true,
+                "type": "boolean"
+              },
+              "rightValue": true
+            }
+          ],
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          }
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "r_load",
+      "name": "Buch aus Master laden",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        0,
+        560
+      ],
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "GOOGLE_FILE_ID"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Buch-ID",
+              "lookupValue": "={{ String($json.buch_id).trim() }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": 0
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "r_code",
+      "name": "Daten aus Master",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        200,
+        560
+      ],
+      "parameters": {
+        "jsCode": "// Fortsetzen ohne WF01: Wird WF02 nur mit einer Buch-ID gestartet (Testlauf-Starter),\n// holt dieser Zweig alle Daten aus dem Buch-Master, die sonst WF01 uebergibt.\nconst b = $input.first().json || {};\nlet gesucht = '';\ntry { gesucht = String($('Start (von WF1)').first().json.buch_id || ''); } catch (e) {}\nif (!b.Buchtitel) throw new Error('Buch-ID ' + gesucht + ' nicht im Buch-Master gefunden.');\nlet kapitel = [];\ntry { kapitel = (JSON.parse(String(b['Planungsdaten (JSON)'] || '{}')).kapitel) || []; } catch (e) { kapitel = []; }\nif (!kapitel.length) throw new Error('Keine Kapitelplanung im Buch-Master fuer Buch-ID ' + gesucht);\nreturn [{ json: {\n  buch_id: String(b['Buch-ID']).trim(),\n  titel: b.Buchtitel,\n  untertitel: b.Untertitel,\n  autor: b['Pseudonym (Autor)'],\n  nische: b.Nische,\n  ordner_id: b['Ordner-ID'],\n  kapitel_json: JSON.stringify(kapitel),\n  fortgesetzt: true\n} }];"
+      }
+    },
+    {
+      "id": "korr_stat",
+      "name": "Kontroll-Statistik",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2064,
+        -280
+      ],
+      "parameters": {
+        "jsCode": "// Diagnose (beeinflusst den Ablauf nicht): sammelt alle Pruefergebnisse des Kontroll-Agenten\n// ueber alle Kapitel, damit sichtbar ist, wie oft und warum korrigiert wurde.\nconst liste = [];\nfor (let r = 0; r < 200; r++) {\n  let items;\n  try { items = $('Korrektur-Zaehler').all(0, r); } catch (e) { break; }\n  if (!items || !items.length) break;\n  const j = items[0].json || {};\n  liste.push({ lauf: r, kapitel: j.kapitel_key, versuch: j.korrektur_versuche, urteil: String(j.output || '').slice(0, 400) });\n}\nconst kapitel = [...new Set(liste.map(x => x.kapitel))];\nconst fehler = liste.filter(x => String(x.urteil).trim().indexOf('PASST') !== 0);\nreturn [{ json: {\n  kapitel: kapitel.length,\n  pruefungen: liste.length,\n  fehler_urteile: fehler.length,\n  leere_urteile: liste.filter(x => !String(x.urteil).trim()).length,\n  limit_erreicht: liste.filter(x => x.versuch >= 2 && String(x.urteil).trim().indexOf('PASST') !== 0).length,\n  liste: liste\n} }];"
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "392cf18f-0dc4-4332-a6f5-90c7d415537c",
+      "name": "Aufzaehlungen normalisieren",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2064,
+        -96
+      ],
+      "parameters": {
+        "jsCode": "// Wandelt literale Bullet-Zeichen (•) in echte Markdown-Listen um.\n// Ohne diesen Schritt verschmelzen alle Stichpunkte zu einem Fliesstext-Absatz,\n// weil Markdown einen einzelnen Zeilenumbruch als Leerzeichen behandelt\n// und '•' kein gueltiger Listen-Marker ist.\n\nfunction normalisieren(md) {\n  if (typeof md !== 'string' || !md) return md;\n  let t = md.replace(/\\r\\n/g, '\\n').replace(/\\r/g, '\\n');\n\n  // 1. Bullet-Zeichen, die mitten in einer Zeile stehen, auf eigene Zeile ziehen\n  t = t.replace(/([^\\n])[ \\t]*([•·▪●‣⁃◦])[ \\t]+/g, '$1\\n$2 ');\n\n  // 2. Bullet-Zeichen am Zeilenanfang in echte Markdown-Listenpunkte wandeln\n  t = t.replace(/^[ \\t]*[•·▪●‣⁃◦][ \\t]*/gm, '- ');\n\n  const istItem = (z) => /^\\s*(?:[-*+]|\\d{1,2}\\.)\\s+\\S/.test(z);\n\n  // 3. Leerzeile VOR dem ersten Listenpunkt eines Blocks erzwingen\n  const zeilen = t.split('\\n');\n  const raus = [];\n  for (const z of zeilen) {\n    const vorher = raus.length ? raus[raus.length - 1] : '';\n    if (istItem(z) && vorher.trim() !== '' && !istItem(vorher)) raus.push('');\n    raus.push(z);\n  }\n  t = raus.join('\\n');\n\n  // 4. Leerzeile NACH dem letzten Listenpunkt eines Blocks erzwingen\n  const z2 = t.split('\\n');\n  const raus2 = [];\n  for (let i = 0; i < z2.length; i++) {\n    raus2.push(z2[i]);\n    const naechste = z2[i + 1];\n    if (istItem(z2[i]) && naechste !== undefined && naechste.trim() !== '' && !istItem(naechste)) raus2.push('');\n  }\n  t = raus2.join('\\n');\n\n  // 5. Uebermaessige Leerzeilen zusammenfassen\n  t = t.replace(/\\n{5,}/g, '\\n\\n\\n\\n');\n\n  return t;\n}\n\nfor (const item of $input.all()) {\n  if (typeof item.json.fertiges_Buch === 'string') {\n    const vorher = (item.json.fertiges_Buch.match(/[•·▪●‣⁃◦]/g) || []).length;\n    item.json.fertiges_Buch = normalisieren(item.json.fertiges_Buch);\n    item.json.bullets_umgewandelt = vorher;\n  }\n}\n\nreturn $input.all();"
+      }
+    },
+    {
+      "id": "c9364492-2092-434d-8150-da75544fe958",
+      "name": "Print-Titelei als ZIP",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3856,
+        -448
+      ],
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst b = item.binary.data;\nb.fileName = 'titelei.zip';\nb.fileExtension = 'zip';\nb.mimeType = 'application/zip';\nreturn [item];"
+      }
+    },
+    {
+      "id": "5142bc15-6c72-4e22-ae58-ab705158fe79",
+      "name": "Print-Titelei entpacken",
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1.1,
+      "position": [
+        3984,
+        -448
+      ],
+      "parameters": {
+        "binaryPropertyName": "data",
+        "operation": "decompress",
+        "outputPrefix": "f_"
+      }
+    },
+    {
+      "id": "83758d8f-0b61-470f-b1b2-688033c7b13e",
+      "name": "Print-Titelei Platzhalter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4112,
+        -448
+      ],
+      "parameters": {
+        "jsCode": "// Ersetzt {{BUCH_TITEL}}, {{BUCH_UNTERTITEL}}, {{BUCH_AUTOR}} und die\n// Kontaktadresse in der Titelei-DOCX.\n// Noetig, weil CloudConvert kein Templating nach DOCX kann und Word die\n// Platzhalter ueber mehrere Runs zerreisst. Das ZIP wird ohne Kompression\n// neu gebaut (zlib ist in n8n Code-Nodes gesperrt) - Word und LibreOffice\n// lesen solche DOCX problemlos.\n\nconst eingabe = $input.first();\nconst quelle = $('Input').first().json;\n\n// Kontaktadresse = Initialen des Pseudonyms, klein, @example.com\n// Pseudonym A -> pa@example.com | Pseudonym B -> pb@example.com | Pseudonym C -> pc@example.com\nfunction mailAus(autor) {\n  const teile = String(autor == null ? '' : autor).split(/\\s+/).filter(Boolean);\n  const initialen = teile\n    .map(function (t) { return t.replace(/[^A-Za-zÄÖÜäöüß]/g, '').charAt(0); })\n    .filter(Boolean).join('').toLowerCase();\n  return initialen ? initialen + '@example.com' : '';\n}\n\nconst mail = mailAus(quelle.autor);\n\nconst map = {\n  BUCH_TITEL: quelle.titel,\n  BUCH_UNTERTITEL: quelle.untertitel,\n  BUCH_AUTOR: quelle.autor,\n  BUCH_KONTAKT: mail\n};\n\nfunction xmlEscape(s) {\n  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n}\n\nfunction ersetzeInAbsaetzen(xml, map, mail) {\n  let treffer = 0;\n  const neuXml = xml.replace(/<w:p(?:\\s[^>]*)?>[\\s\\S]*?<\\/w:p>/g, (absatz) => {\n    const teile = [];\n    const re = /(<w:t(?:\\s[^>]*)?>)([\\s\\S]*?)(<\\/w:t>)/g;\n    let m;\n    while ((m = re.exec(absatz)) !== null) {\n      teile.push({ start: m.index, ende: re.lastIndex, oeffner: m[1], text: m[2], schliesser: m[3] });\n    }\n    if (!teile.length) return absatz;\n    const gesamt = teile.map(t => t.text).join('');\n    if (gesamt.indexOf('{{') === -1 && gesamt.toUpperCase().indexOf('XXX@') === -1) return absatz;\n\n    let neu = gesamt;\n    neu = neu.split('{{BUCH_AUTOR}}]').join(xmlEscape(map.BUCH_AUTOR));\n    for (const k of Object.keys(map)) {\n      neu = neu.split('{{' + k + '}}').join(xmlEscape(map[k]));\n    }\n    if (mail) neu = neu.replace(/XXX@example\\.com/gi, mail);\n    if (neu === gesamt) return absatz;\n    treffer++;\n\n    const ausgabe = [];\n    let pos = 0;\n    teile.forEach((t, i) => {\n      ausgabe.push(absatz.slice(pos, t.start));\n      let oeffner = t.oeffner;\n      let inhalt = '';\n      if (i === 0) {\n        inhalt = neu;\n        if (!/xml:space=/.test(oeffner)) oeffner = oeffner.replace(/^<w:t/, '<w:t xml:space=\"preserve\"');\n      }\n      ausgabe.push(oeffner + inhalt + t.schliesser);\n      pos = t.ende;\n    });\n    ausgabe.push(absatz.slice(pos));\n    return ausgabe.join('');\n  });\n  return { xml: neuXml, treffer };\n}\n\nfunction crc32(buf) {\n  if (!crc32.tabelle) {\n    const t = [];\n    for (let n = 0; n < 256; n++) {\n      let c = n;\n      for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;\n      t[n] = c >>> 0;\n    }\n    crc32.tabelle = t;\n  }\n  const t = crc32.tabelle;\n  let crc = -1;\n  for (let i = 0; i < buf.length; i++) crc = (crc >>> 8) ^ t[(crc ^ buf[i]) & 0xFF];\n  return (crc ^ -1) >>> 0;\n}\n\nfunction zipSchreiben(eintraege) {\n  const lokale = [], zentrale = [];\n  let offset = 0;\n  const zeit = 0, datum = (26 << 9) | (1 << 5) | 1;\n  for (const e of eintraege) {\n    const name = Buffer.from(e.pfad, 'utf8');\n    const daten = e.buf;\n    const crc = crc32(daten);\n    const lh = Buffer.alloc(30);\n    lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4); lh.writeUInt16LE(0, 6);\n    lh.writeUInt16LE(0, 8); lh.writeUInt16LE(zeit, 10); lh.writeUInt16LE(datum, 12);\n    lh.writeUInt32LE(crc, 14); lh.writeUInt32LE(daten.length, 18); lh.writeUInt32LE(daten.length, 22);\n    lh.writeUInt16LE(name.length, 26); lh.writeUInt16LE(0, 28);\n    lokale.push(lh, name, daten);\n    const ch = Buffer.alloc(46);\n    ch.writeUInt32LE(0x02014b50, 0); ch.writeUInt16LE(20, 4); ch.writeUInt16LE(20, 6);\n    ch.writeUInt16LE(0, 8); ch.writeUInt16LE(0, 10); ch.writeUInt16LE(zeit, 12); ch.writeUInt16LE(datum, 14);\n    ch.writeUInt32LE(crc, 16); ch.writeUInt32LE(daten.length, 20); ch.writeUInt32LE(daten.length, 24);\n    ch.writeUInt16LE(name.length, 28); ch.writeUInt16LE(0, 30); ch.writeUInt16LE(0, 32);\n    ch.writeUInt16LE(0, 34); ch.writeUInt16LE(0, 36); ch.writeUInt32LE(0, 38); ch.writeUInt32LE(offset, 42);\n    zentrale.push(ch, name);\n    offset += 30 + name.length + daten.length;\n  }\n  const zBuf = Buffer.concat(zentrale);\n  const eocd = Buffer.alloc(22);\n  eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(0, 4); eocd.writeUInt16LE(0, 6);\n  eocd.writeUInt16LE(eintraege.length, 8); eocd.writeUInt16LE(eintraege.length, 10);\n  eocd.writeUInt32LE(zBuf.length, 12); eocd.writeUInt32LE(offset, 16); eocd.writeUInt16LE(0, 20);\n  return Buffer.concat([...lokale, zBuf, eocd]);\n}\n\nconst eintraege = [];\nlet treffer = 0;\nlet gefunden = false;\n\nfor (const key of Object.keys(eingabe.binary || {})) {\n  const b = eingabe.binary[key];\n  const pfad = (b.directory ? b.directory + '/' : '') + b.fileName;\n  let buf = await this.helpers.getBinaryDataBuffer(0, key);\n  if (pfad === 'word/document.xml') {\n    gefunden = true;\n    const r = ersetzeInAbsaetzen(buf.toString('utf8'), map, mail);\n    treffer = r.treffer;\n    buf = Buffer.from(r.xml, 'utf8');\n  }\n  eintraege.push({ pfad, buf });\n}\n\nif (!gefunden) throw new Error('word/document.xml nicht im Archiv gefunden');\n\nconst zip = zipSchreiben(eintraege);\nconst bin = await this.helpers.prepareBinaryData(zip, 'titelei.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');\n\nreturn [{ json: { ersetzte_absaetze: treffer, kontakt: mail, dateien: eintraege.length, bytes: zip.length }, binary: { data: bin } }];"
+      }
+    },
+    {
+      "id": "bd906fb3-5a5a-4477-bb0e-15b97c8d7ab5",
+      "name": "E-Book-Titelei als ZIP",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3856,
+        288
+      ],
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst b = item.binary.data;\nb.fileName = 'titelei.zip';\nb.fileExtension = 'zip';\nb.mimeType = 'application/zip';\nreturn [item];"
+      }
+    },
+    {
+      "id": "3326d1dc-0dfb-4569-87ad-08a7dd34a5a9",
+      "name": "E-Book-Titelei entpacken",
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1.1,
+      "position": [
+        3984,
+        288
+      ],
+      "parameters": {
+        "binaryPropertyName": "data",
+        "operation": "decompress",
+        "outputPrefix": "f_"
+      }
+    },
+    {
+      "id": "cb6f1050-b77c-49b1-86fb-b8cd27cffbca",
+      "name": "E-Book-Titelei Platzhalter",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4112,
+        288
+      ],
+      "parameters": {
+        "jsCode": "// Ersetzt {{BUCH_TITEL}}, {{BUCH_UNTERTITEL}}, {{BUCH_AUTOR}} und die\n// Kontaktadresse in der Titelei-DOCX.\n// Siehe Print-Titelei Platzhalter - identische Logik.\n\nconst eingabe = $input.first();\nconst quelle = $('Input').first().json;\n\nfunction mailAus(autor) {\n  const teile = String(autor == null ? '' : autor).split(/\\s+/).filter(Boolean);\n  const initialen = teile\n    .map(function (t) { return t.replace(/[^A-Za-zÄÖÜäöüß]/g, '').charAt(0); })\n    .filter(Boolean).join('').toLowerCase();\n  return initialen ? initialen + '@example.com' : '';\n}\n\nconst mail = mailAus(quelle.autor);\n\nconst map = {\n  BUCH_TITEL: quelle.titel,\n  BUCH_UNTERTITEL: quelle.untertitel,\n  BUCH_AUTOR: quelle.autor,\n  BUCH_KONTAKT: mail\n};\n\nfunction xmlEscape(s) {\n  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n}\n\nfunction ersetzeInAbsaetzen(xml, map, mail) {\n  let treffer = 0;\n  const neuXml = xml.replace(/<w:p(?:\\s[^>]*)?>[\\s\\S]*?<\\/w:p>/g, (absatz) => {\n    const teile = [];\n    const re = /(<w:t(?:\\s[^>]*)?>)([\\s\\S]*?)(<\\/w:t>)/g;\n    let m;\n    while ((m = re.exec(absatz)) !== null) {\n      teile.push({ start: m.index, ende: re.lastIndex, oeffner: m[1], text: m[2], schliesser: m[3] });\n    }\n    if (!teile.length) return absatz;\n    const gesamt = teile.map(t => t.text).join('');\n    if (gesamt.indexOf('{{') === -1 && gesamt.toUpperCase().indexOf('XXX@') === -1) return absatz;\n\n    let neu = gesamt;\n    neu = neu.split('{{BUCH_AUTOR}}]').join(xmlEscape(map.BUCH_AUTOR));\n    for (const k of Object.keys(map)) {\n      neu = neu.split('{{' + k + '}}').join(xmlEscape(map[k]));\n    }\n    if (mail) neu = neu.replace(/XXX@example\\.com/gi, mail);\n    if (neu === gesamt) return absatz;\n    treffer++;\n\n    const ausgabe = [];\n    let pos = 0;\n    teile.forEach((t, i) => {\n      ausgabe.push(absatz.slice(pos, t.start));\n      let oeffner = t.oeffner;\n      let inhalt = '';\n      if (i === 0) {\n        inhalt = neu;\n        if (!/xml:space=/.test(oeffner)) oeffner = oeffner.replace(/^<w:t/, '<w:t xml:space=\"preserve\"');\n      }\n      ausgabe.push(oeffner + inhalt + t.schliesser);\n      pos = t.ende;\n    });\n    ausgabe.push(absatz.slice(pos));\n    return ausgabe.join('');\n  });\n  return { xml: neuXml, treffer };\n}\n\nfunction crc32(buf) {\n  if (!crc32.tabelle) {\n    const t = [];\n    for (let n = 0; n < 256; n++) {\n      let c = n;\n      for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;\n      t[n] = c >>> 0;\n    }\n    crc32.tabelle = t;\n  }\n  const t = crc32.tabelle;\n  let crc = -1;\n  for (let i = 0; i < buf.length; i++) crc = (crc >>> 8) ^ t[(crc ^ buf[i]) & 0xFF];\n  return (crc ^ -1) >>> 0;\n}\n\nfunction zipSchreiben(eintraege) {\n  const lokale = [], zentrale = [];\n  let offset = 0;\n  const zeit = 0, datum = (26 << 9) | (1 << 5) | 1;\n  for (const e of eintraege) {\n    const name = Buffer.from(e.pfad, 'utf8');\n    const daten = e.buf;\n    const crc = crc32(daten);\n    const lh = Buffer.alloc(30);\n    lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4); lh.writeUInt16LE(0, 6);\n    lh.writeUInt16LE(0, 8); lh.writeUInt16LE(zeit, 10); lh.writeUInt16LE(datum, 12);\n    lh.writeUInt32LE(crc, 14); lh.writeUInt32LE(daten.length, 18); lh.writeUInt32LE(daten.length, 22);\n    lh.writeUInt16LE(name.length, 26); lh.writeUInt16LE(0, 28);\n    lokale.push(lh, name, daten);\n    const ch = Buffer.alloc(46);\n    ch.writeUInt32LE(0x02014b50, 0); ch.writeUInt16LE(20, 4); ch.writeUInt16LE(20, 6);\n    ch.writeUInt16LE(0, 8); ch.writeUInt16LE(0, 10); ch.writeUInt16LE(zeit, 12); ch.writeUInt16LE(datum, 14);\n    ch.writeUInt32LE(crc, 16); ch.writeUInt32LE(daten.length, 20); ch.writeUInt32LE(daten.length, 24);\n    ch.writeUInt16LE(name.length, 28); ch.writeUInt16LE(0, 30); ch.writeUInt16LE(0, 32);\n    ch.writeUInt16LE(0, 34); ch.writeUInt16LE(0, 36); ch.writeUInt32LE(0, 38); ch.writeUInt32LE(offset, 42);\n    zentrale.push(ch, name);\n    offset += 30 + name.length + daten.length;\n  }\n  const zBuf = Buffer.concat(zentrale);\n  const eocd = Buffer.alloc(22);\n  eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(0, 4); eocd.writeUInt16LE(0, 6);\n  eocd.writeUInt16LE(eintraege.length, 8); eocd.writeUInt16LE(eintraege.length, 10);\n  eocd.writeUInt32LE(zBuf.length, 12); eocd.writeUInt32LE(offset, 16); eocd.writeUInt16LE(0, 20);\n  return Buffer.concat([...lokale, zBuf, eocd]);\n}\n\nconst eintraege = [];\nlet treffer = 0;\nlet gefunden = false;\n\nfor (const key of Object.keys(eingabe.binary || {})) {\n  const b = eingabe.binary[key];\n  const pfad = (b.directory ? b.directory + '/' : '') + b.fileName;\n  let buf = await this.helpers.getBinaryDataBuffer(0, key);\n  if (pfad === 'word/document.xml') {\n    gefunden = true;\n    const r = ersetzeInAbsaetzen(buf.toString('utf8'), map, mail);\n    treffer = r.treffer;\n    buf = Buffer.from(r.xml, 'utf8');\n  }\n  eintraege.push({ pfad, buf });\n}\n\nif (!gefunden) throw new Error('word/document.xml nicht im Archiv gefunden');\n\nconst zip = zipSchreiben(eintraege);\nconst bin = await this.helpers.prepareBinaryData(zip, 'titelei.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');\n\nreturn [{ json: { ersetzte_absaetze: treffer, kontakt: mail, dateien: eintraege.length, bytes: zip.length }, binary: { data: bin } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Schreib-Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Download Print Master",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download E-Book Master",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Kontroll-Statistik",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aufzaehlungen normalisieren",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Schreib-Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fix-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model5": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Kontroll-Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schreib-Agent": {
+      "main": [
+        [
+          {
+            "node": "Kontroll-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model6": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Fix-Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fix-Agent": {
+      "main": [
+        [
+          {
+            "node": "Kontroll-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Print Master": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download E-Book Master": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Status: geschrieben",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait2": {
+      "main": [
+        [
+          {
+            "node": "Taschenbuch_abfragen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Taschenbuch_bestellen": {
+      "main": [
+        [
+          {
+            "node": "Wait2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Taschenbuch_abfragen": {
+      "main": [
+        [
+          {
+            "node": "Print_Titel_Download",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Buch_Text_Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait3": {
+      "main": [
+        [
+          {
+            "node": "E-Book_abfragen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E-Book_abfragen": {
+      "main": [
+        [
+          {
+            "node": "E-Book_Titel_Download",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E-Book_bestellen": {
+      "main": [
+        [
+          {
+            "node": "Wait3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Taschenbuch_bestellen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "E-Book_bestellen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Taschenbuch Titel": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload E-Book Titel": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Buch_Text_Download": {
+      "main": [
+        [
+          {
+            "node": "Upload Buch Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload Buch Text": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model7": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Nachwort-Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Nachwort-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Status: geschrieben": {
+      "main": [
+        [
+          {
+            "node": "WF3-Daten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF3-Daten": {
+      "main": [
+        [
+          {
+            "node": "→ WF3 (Cover & Versand)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kontroll-Agent": {
+      "main": [
+        [
+          {
+            "node": "Korrektur-Zaehler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Korrektur-Zaehler": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "Bauform waehlen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bauform waehlen": {
+      "main": [
+        [
+          {
+            "node": "Schreib-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Buch + Nachwort",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Nachwort-Agent": {
+      "main": [
+        [
+          {
+            "node": "Buch + Nachwort",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Buch + Nachwort": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start (von WF1)": {
+      "main": [
+        [
+          {
+            "node": "Daten vollständig?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daten vollständig?": {
+      "main": [
+        [
+          {
+            "node": "Input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Buch aus Master laden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buch aus Master laden": {
+      "main": [
+        [
+          {
+            "node": "Daten aus Master",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daten aus Master": {
+      "main": [
+        [
+          {
+            "node": "Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aufzaehlungen normalisieren": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Print_Titel_Download": {
+      "main": [
+        [
+          {
+            "node": "Print-Titelei als ZIP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Print-Titelei als ZIP": {
+      "main": [
+        [
+          {
+            "node": "Print-Titelei entpacken",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Print-Titelei entpacken": {
+      "main": [
+        [
+          {
+            "node": "Print-Titelei Platzhalter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Print-Titelei Platzhalter": {
+      "main": [
+        [
+          {
+            "node": "Upload Taschenbuch Titel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E-Book_Titel_Download": {
+      "main": [
+        [
+          {
+            "node": "E-Book-Titelei als ZIP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E-Book-Titelei als ZIP": {
+      "main": [
+        [
+          {
+            "node": "E-Book-Titelei entpacken",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E-Book-Titelei entpacken": {
+      "main": [
+        [
+          {
+            "node": "E-Book-Titelei Platzhalter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "E-Book-Titelei Platzhalter": {
+      "main": [
+        [
+          {
+            "node": "Upload E-Book Titel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "binaryMode": "separate",
+    "errorWorkflow": "ERROR_WORKFLOW_ID"
+  }
+}

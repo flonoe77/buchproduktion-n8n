@@ -1,0 +1,432 @@
+{
+  "name": "14 Print-Cover erstellen",
+  "nodes": [
+    {
+      "id": "pc_trg",
+      "name": "Start",
+      "parameters": {
+        "formDescription": "Erzeugt das komplette KDP-Print-Cover (Rueckseite, Buchruecken, Vorderseite) als druckfertige PDF im Buchordner. Die Seitenzahl steht nach dem Hochladen des Manuskripts im KDP-Backend.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Buch-ID",
+              "fieldType": "text",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Seitenzahl",
+              "fieldType": "number",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Trimmgroesse",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "15,24 x 22,86 cm (6 x 9 Zoll)"
+                  },
+                  {
+                    "option": "12,7 x 20,32 cm (5 x 8 Zoll)"
+                  },
+                  {
+                    "option": "13,34 x 20,32 cm (5,25 x 8 Zoll)"
+                  },
+                  {
+                    "option": "13,97 x 21,59 cm (5,5 x 8,5 Zoll)"
+                  }
+                ]
+              },
+              "fieldType": "dropdown",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Papier",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Weiss"
+                  },
+                  {
+                    "option": "Creme"
+                  }
+                ]
+              },
+              "fieldType": "dropdown",
+              "requiredField": true
+            }
+          ]
+        },
+        "formTitle": "Print-Cover erstellen",
+        "options": {}
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5
+    },
+    {
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "id": "pc_read",
+      "maxTries": 3,
+      "name": "Buch-Master lesen",
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "cachedResultName": "Buch-Master",
+          "mode": "list",
+          "value": "GOOGLE_FILE_ID"
+        },
+        "options": {},
+        "sheetName": {
+          "__rl": true,
+          "cachedResultName": "Buch-Master",
+          "mode": "list",
+          "value": 0
+        }
+      },
+      "position": [
+        220,
+        0
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "pc_calc",
+      "name": "Buch waehlen",
+      "parameters": {
+        "jsCode": "// Rechnet die kompletten KDP-Cover-Masse aus Seitenzahl, Trimmgroesse und Papier.\n// Formeln nach KDP: Ruecken = Seitenzahl x Papierdicke, Anschnitt 0,125 Zoll aussen.\n// Standard ist 6 x 9 Zoll - das ist das Format der Master-Dokumente.\n\nconst f = $('Start').first().json;\nconst buchId = String(f['Buch-ID'] == null ? '' : f['Buch-ID']).trim();\nconst seiten = Number(String(f['Seitenzahl'] == null ? '' : f['Seitenzahl']).replace(',', '.'));\nconst trimWahl = String(f['Trimmgroesse'] == null ? '' : f['Trimmgroesse']);\nconst papier = String(f['Papier'] == null ? 'Weiss' : f['Papier']);\n\nif (!buchId) throw new Error('Buch-ID fehlt.');\nif (!Number.isFinite(seiten) || seiten < 24) throw new Error('Seitenzahl fehlt oder ist unplausibel. KDP-Minimum ist 24 Seiten.');\nif (seiten > 828) throw new Error('Seitenzahl ueber dem KDP-Maximum von 828.');\n\nconst TRIM = {\n  '12,7 x 20,32 cm (5 x 8 Zoll)': [5, 8],\n  '13,34 x 20,32 cm (5,25 x 8 Zoll)': [5.25, 8],\n  '13,97 x 21,59 cm (5,5 x 8,5 Zoll)': [5.5, 8.5],\n  '15,24 x 22,86 cm (6 x 9 Zoll)': [6, 9]\n};\nconst masse = TRIM[trimWahl] || TRIM['15,24 x 22,86 cm (6 x 9 Zoll)'];\nconst trimB = masse[0];\nconst trimH = masse[1];\n\nconst dicke = papier.toLowerCase().indexOf('creme') !== -1 ? 0.0025 : 0.002252;\nconst bleed = 0.125;\nconst ruecken = seiten * dicke;\n\nconst gesamtB = 2 * trimB + ruecken + 2 * bleed;\nconst gesamtH = trimH + 2 * bleed;\n\nlet zeile = null;\nfor (const r of $input.all()) {\n  const x = r.json || {};\n  if (String(x['Buch-ID'] == null ? '' : x['Buch-ID']).trim() === buchId) { zeile = x; break; }\n}\nif (!zeile) throw new Error('Buch-ID ' + buchId + ' steht nicht im Buch-Master.');\n\nconst s = function (v) { return String(v == null ? '' : v).trim(); };\nconst ordner = s(zeile['Ordner-ID']);\nif (!ordner) throw new Error('Buch ' + buchId + ' hat keine Ordner-ID im Buch-Master.');\n\nreturn [{ json: {\n  buch_id: buchId,\n  titel: s(zeile['Buchtitel']),\n  untertitel: s(zeile['Untertitel']),\n  autor: s(zeile['Pseudonym (Autor)']),\n  klappentext: s(zeile['Klappentext']) || s(zeile['Beschreibung']),\n  ordner_id: ordner,\n  seitenzahl: seiten,\n  papier: papier,\n  trim_breite_in: trimB,\n  trim_hoehe_in: trimH,\n  bleed_in: bleed,\n  ruecken_in: Number(ruecken.toFixed(4)),\n  ruecken_mm: Number((ruecken * 25.4).toFixed(2)),\n  gesamt_breite_in: Number(gesamtB.toFixed(4)),\n  gesamt_hoehe_in: Number(gesamtH.toFixed(4)),\n  ruecken_text_erlaubt: seiten >= 100\n}}];"
+      },
+      "position": [
+        440,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "id": "pc_find",
+      "maxTries": 3,
+      "name": "Cover suchen",
+      "parameters": {
+        "filter": {},
+        "limit": 1,
+        "options": {},
+        "queryString": "=name contains 'Cover' and mimeType contains 'image/' and not name contains 'PRINT' and '{{ $json.ordner_id }}' in parents",
+        "resource": "fileFolder",
+        "searchMethod": "query"
+      },
+      "position": [
+        660,
+        0
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "id": "pc_dl",
+      "maxTries": 3,
+      "name": "Cover laden",
+      "parameters": {
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.id }}"
+        },
+        "operation": "download",
+        "options": {}
+      },
+      "position": [
+        880,
+        0
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "pc_html",
+      "name": "Cover-HTML bauen",
+      "parameters": {
+        "jsCode": "const b = $('Buch waehlen').first().json;\nconst item = $input.first();\n\nconst buf = await this.helpers.getBinaryDataBuffer(0, 'data');\nconst mime = (item.binary && item.binary.data && item.binary.data.mimeType) || 'image/jpeg';\nconst img = 'data:' + mime + ';base64,' + buf.toString('base64');\n\nfunction esc(s) {\n  return String(s == null ? '' : s)\n    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n}\n\nconst W = b.gesamt_breite_in;\nconst H = b.gesamt_hoehe_in;\nconst S = b.ruecken_in;\nconst BL = b.bleed_in;\nconst panel = b.trim_breite_in + BL;\n\n// Barcode-Freiflaeche: KDP druckt dort den Code. 2 x 1,2 Zoll, 0,25 Zoll vom Beschnitt entfernt.\nconst bcB = 2, bcH = 1.2;\nconst bcLinks = panel - 0.25 - bcB;\nconst bcOben = H - BL - 0.25 - bcH;\n\n// --- Klappentext in Absaetze zerlegen -------------------------------------\n// 1. Vorhandene Absaetze aus dem Sheet werden uebernommen (Leerzeile = Absatz),\n//    einzelne Zeilenumbrueche zaehlen als Leerzeichen.\n// 2. Nur wenn der Text gar keine Absaetze hat, wird nach Saetzen gruppiert.\n//    Die Satzerkennung verlangt ein Satzzeichen mit mindestens zwei Zeichen\n//    davor und einem Grossbuchstaben danach. Ein schliessendes Anfuehrungs-\n//    zeichen allein trennt NICHT mehr - genau das hat vorher mitten im Satz\n//    einen neuen Absatz erzeugt.\n\nconst roh = String(b.klappentext || '').replace(/\\r\\n/g, '\\n').replace(/\\r/g, '\\n').trim();\n\nlet bloecke = roh.split(/\\n\\s*\\n+/)\n  .map(function (t) { return t.replace(/\\s+/g, ' ').trim(); })\n  .filter(function (t) { return t.length > 0; });\n\nif (bloecke.length <= 1) {\n  const text = bloecke.length ? bloecke[0] : '';\n  bloecke = [];\n  if (text) {\n    const saetze = text.split(/(?<=[a-zäöüß0-9)”“»\"']{2}[.!?][”“»\"']?)\\s+(?=[A-ZÄÖÜ„»])/);\n    for (const satz of saetze) {\n      if (!bloecke.length || (bloecke[bloecke.length - 1] + ' ' + satz).length > 300) bloecke.push(satz);\n      else bloecke[bloecke.length - 1] += ' ' + satz;\n    }\n  }\n}\n\nconst MAX = 1100;\nconst absaetze = [];\nlet gesamt = 0;\nfor (const p of bloecke) {\n  if (gesamt + p.length > MAX) {\n    const rest = MAX - gesamt;\n    if (rest > 80) absaetze.push(p.slice(0, rest).replace(/\\s\\S*$/, '') + '...');\n    break;\n  }\n  absaetze.push(p);\n  gesamt += p.length + 1;\n}\n// -------------------------------------------------------------------------\n\nconst rueckenBlock = b.ruecken_text_erlaubt\n  ? '<div class=\"spinetext\"><span class=\"st\">' + esc(b.titel) + '</span><span class=\"sa\">' + esc(b.autor) + '</span></div>'\n  : '';\n\nconst css = '@page { size: ' + W + 'in ' + H + 'in; margin: 0; }'\n  + '* { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }'\n  + 'html, body { margin:0; padding:0; width:' + W + 'in; height:' + H + 'in; overflow:hidden;'\n  + ' font-family: \"DejaVu Serif\", Georgia, \"Times New Roman\", serif; color:#fff; }'\n  + '.sheet { position:relative; width:' + W + 'in; height:' + H + 'in; overflow:hidden;'\n  + ' page-break-inside:avoid; break-inside:avoid; }'\n  + '.bg { position:absolute; left:-0.3in; top:-0.3in; width:' + (W + 0.6) + 'in; height:' + (H + 0.6) + 'in;'\n  + ' background-image:url(\"' + img + '\"); background-size:cover; background-position:center;'\n  + ' filter: blur(28px) saturate(1.15) brightness(0.42); }'\n  + '.tint { position:absolute; left:0; top:0; width:' + W + 'in; height:' + H + 'in;'\n  + ' background:linear-gradient(180deg, rgba(0,0,0,0.30), rgba(0,0,0,0.55)); }'\n  + '.back { position:absolute; left:0; top:0; width:' + panel + 'in; height:' + H + 'in;'\n  + ' padding:' + (BL + 0.55) + 'in 0.45in ' + (BL + 0.35) + 'in ' + (BL + 0.45) + 'in; overflow:hidden; }'\n  + '.btitel { font-size:17pt; line-height:1.15; margin:0 0 0.06in 0; font-weight:700; }'\n  + '.buntertitel { font-size:10.5pt; line-height:1.25; margin:0 0 0.22in 0; opacity:0.88; font-style:italic; }'\n  + '.regel { width:0.9in; height:2px; background:rgba(255,255,255,0.55); margin:0 0 0.2in 0; }'\n  + '.btext { max-height:' + (H - 2 * BL - 3.0) + 'in; overflow:hidden; }'\n  + '.btext p { font-size:9.6pt; line-height:1.42; margin:0 0 0.11in 0; opacity:0.95; }'\n  + '.bautor { position:absolute; left:' + (BL + 0.45) + 'in; bottom:' + (BL + 0.35) + 'in;'\n  + ' font-size:10pt; letter-spacing:0.5pt; text-transform:uppercase; opacity:0.85; }'\n  + '.barcode { position:absolute; left:' + bcLinks + 'in; top:' + bcOben + 'in; width:' + bcB + 'in; height:' + bcH + 'in;'\n  + ' background:#ffffff; border-radius:2pt; }'\n  + '.spine { position:absolute; left:' + panel + 'in; top:0; width:' + S + 'in; height:' + H + 'in;'\n  + ' background:rgba(0,0,0,0.28); overflow:hidden;'\n  + ' box-shadow: inset 1px 0 0 rgba(255,255,255,0.10), inset -1px 0 0 rgba(255,255,255,0.10); }'\n  + '.spinetext { position:absolute; left:50%; top:50%; width:' + (H - 1.0) + 'in; height:' + S + 'in;'\n  + ' transform: translate(-50%,-50%) rotate(90deg); display:flex; align-items:center;'\n  + ' justify-content:space-between; padding:0 0.15in; }'\n  + '.st { font-size:' + Math.max(7, Math.min(12, S * 26)).toFixed(1) + 'pt; font-weight:700; white-space:nowrap;'\n  + ' overflow:hidden; text-overflow:ellipsis; max-width:72%; }'\n  + '.sa { font-size:' + Math.max(6, Math.min(9.5, S * 20)).toFixed(1) + 'pt; white-space:nowrap; opacity:0.9; }'\n  + '.front { position:absolute; left:' + (panel + S) + 'in; top:0; width:' + panel + 'in; height:' + H + 'in; overflow:hidden; }'\n  + '.front img { width:100%; height:100%; object-fit:cover; object-position:center; display:block; }';\n\nconst html = '<!DOCTYPE html><html lang=\"de\"><head><meta charset=\"utf-8\"><style>' + css + '</style></head><body>'\n  + '<div class=\"sheet\">'\n  + '<div class=\"bg\"></div><div class=\"tint\"></div>'\n  + '<div class=\"back\">'\n  + '<div class=\"btitel\">' + esc(b.titel) + '</div>'\n  + (b.untertitel ? '<div class=\"buntertitel\">' + esc(b.untertitel) + '</div>' : '')\n  + '<div class=\"regel\"></div>'\n  + '<div class=\"btext\">' + absaetze.map(function (p) { return '<p>' + esc(p) + '</p>'; }).join('') + '</div>'\n  + '<div class=\"bautor\">' + esc(b.autor) + '</div>'\n  + '<div class=\"barcode\"></div>'\n  + '</div>'\n  + '<div class=\"spine\">' + rueckenBlock + '</div>'\n  + '<div class=\"front\"><img src=\"' + img + '\"></div>'\n  + '</div>'\n  + '</body></html>';\n\nconst sauberTitel = String(b.titel).replace(/[^a-zA-Z0-9äöüÄÖÜß\\- ]/g, '').trim().slice(0, 50);\n\nreturn [{ json: {\n  html: html,\n  absaetze: absaetze.length,\n  klappentext_zeichen: gesamt,\n  dateiname: 'PRINT_COVER_' + sauberTitel + '_' + $now.toFormat('yyyy-MM-dd') + '.pdf'\n} }];"
+      },
+      "position": [
+        1100,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "pc_file",
+      "name": "HTML als Datei",
+      "parameters": {
+        "operation": "toText",
+        "options": {
+          "fileName": "index.html",
+          "mimeType": "text/html"
+        },
+        "sourceProperty": "html"
+      },
+      "position": [
+        1320,
+        0
+      ],
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1
+    },
+    {
+      "alwaysOutputData": true,
+      "id": "pc_pdf",
+      "maxTries": 2,
+      "name": "Cover-PDF rendern",
+      "parameters": {
+        "bodyParameters": {
+          "parameters": [
+            {
+              "inputDataFieldName": "data",
+              "name": "files",
+              "parameterType": "formBinaryData"
+            },
+            {
+              "name": "preferCssPageSize",
+              "value": "true"
+            },
+            {
+              "name": "printBackground",
+              "value": "true"
+            },
+            {
+              "name": "marginTop",
+              "value": "0"
+            },
+            {
+              "name": "marginBottom",
+              "value": "0"
+            },
+            {
+              "name": "marginLeft",
+              "value": "0"
+            },
+            {
+              "name": "marginRight",
+              "value": "0"
+            },
+            {
+              "name": "waitDelay",
+              "value": "1s"
+            }
+          ]
+        },
+        "contentType": "multipart-form-data",
+        "method": "POST",
+        "options": {
+          "response": {
+            "response": {
+              "outputPropertyName": "data",
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 180000
+        },
+        "sendBody": true,
+        "url": "http://gotenberg:3000/forms/chromium/convert/html"
+      },
+      "position": [
+        1540,
+        0
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "waitBetweenTries": 5000
+    },
+    {
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "id": "pc_up",
+      "maxTries": 3,
+      "name": "Print-Cover ablegen",
+      "parameters": {
+        "driveId": {
+          "__rl": true,
+          "cachedResultName": "My Drive",
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Buch waehlen').first().json.ordner_id }}"
+        },
+        "inputDataFieldName": "data",
+        "name": "={{ $('Cover-HTML bauen').first().json.dateiname }}",
+        "operation": "upload",
+        "options": {}
+      },
+      "position": [
+        1760,
+        0
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "pc_done",
+      "name": "Fertig",
+      "parameters": {
+        "completionMessage": "={{ $('Buch waehlen').first().json.titel }} | Seiten: {{ $('Buch waehlen').first().json.seitenzahl }} | Ruecken: {{ $('Buch waehlen').first().json.ruecken_mm }} mm | Gesamtformat: {{ $('Buch waehlen').first().json.gesamt_breite_in }} x {{ $('Buch waehlen').first().json.gesamt_hoehe_in }} Zoll. Datei liegt im Buchordner: {{ $json.name }}",
+        "completionTitle": "Print-Cover erstellt",
+        "operation": "completion",
+        "options": {},
+        "respondWith": "text"
+      },
+      "position": [
+        1980,
+        0
+      ],
+      "type": "n8n-nodes-base.form",
+      "typeVersion": 2.5
+    }
+  ],
+  "connections": {
+    "Buch waehlen": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Cover suchen",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Buch-Master lesen": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Buch waehlen",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Cover laden": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Cover-HTML bauen",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Cover suchen": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Cover laden",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Cover-HTML bauen": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "HTML als Datei",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Cover-PDF rendern": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Print-Cover ablegen",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "HTML als Datei": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Cover-PDF rendern",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Print-Cover ablegen": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Fertig",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Start": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Buch-Master lesen",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "ERROR_WORKFLOW_ID"
+  }
+}

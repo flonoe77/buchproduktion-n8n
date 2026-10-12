@@ -1,0 +1,224 @@
+{
+  "name": "15 Titelei – Platzhalter ersetzen",
+  "nodes": [
+    {
+      "id": "ti1",
+      "name": "Formular",
+      "parameters": {
+        "formDescription": "Ersetzt {{BUCH_TITEL}}, {{BUCH_UNTERTITEL}} und {{BUCH_AUTOR}} in einer bereits erzeugten Titelei-DOCX.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Datei-ID",
+              "fieldType": "text",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Titel",
+              "fieldType": "text",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Untertitel",
+              "fieldType": "text",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Autor",
+              "fieldType": "text",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Ordner-ID",
+              "fieldType": "text",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Dateiname",
+              "fieldType": "text",
+              "requiredField": true
+            }
+          ]
+        },
+        "formTitle": "Titelei-Platzhalter ersetzen",
+        "options": {}
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5
+    },
+    {
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "id": "ti2",
+      "maxTries": 3,
+      "name": "DOCX laden",
+      "parameters": {
+        "fileId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json['Datei-ID'] }}"
+        },
+        "operation": "download",
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "position": [
+        224,
+        0
+      ],
+      "retryOnFail": true,
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "ti3",
+      "name": "Als ZIP benennen",
+      "parameters": {
+        "jsCode": "const item = $input.first();\nconst b = item.binary.data;\nb.fileName = 'titelei.zip';\nb.fileExtension = 'zip';\nb.mimeType = 'application/zip';\nreturn [item];"
+      },
+      "position": [
+        448,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "ti4",
+      "name": "Entpacken",
+      "parameters": {
+        "binaryPropertyName": "data",
+        "operation": "decompress",
+        "outputPrefix": "f_"
+      },
+      "position": [
+        672,
+        0
+      ],
+      "type": "n8n-nodes-base.compression",
+      "typeVersion": 1.1
+    },
+    {
+      "id": "ti5",
+      "name": "Platzhalter ersetzen",
+      "parameters": {
+        "jsCode": "const eingabe = $input.first();\nconst f = $('Formular').first().json;\n\n// Kontaktadresse = Initialen des Pseudonyms, klein, @example.com\nfunction mailAus(autor) {\n  const teile = String(autor == null ? '' : autor).split(/\\s+/).filter(Boolean);\n  const initialen = teile\n    .map(function (t) { return t.replace(/[^A-Za-zÄÖÜäöüß]/g, '').charAt(0); })\n    .filter(Boolean).join('').toLowerCase();\n  return initialen ? initialen + '@example.com' : '';\n}\n\nconst mail = mailAus(f['Autor']);\n\nconst map = {\n  BUCH_TITEL: f['Titel'],\n  BUCH_UNTERTITEL: f['Untertitel'],\n  BUCH_AUTOR: f['Autor'],\n  BUCH_KONTAKT: mail\n};\n\nfunction xmlEscape(s) {\n  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n}\n\nfunction ersetzeInAbsaetzen(xml, map, mail) {\n  let treffer = 0;\n  const neuXml = xml.replace(/<w:p(?:\\s[^>]*)?>[\\s\\S]*?<\\/w:p>/g, (absatz) => {\n    const teile = [];\n    const re = /(<w:t(?:\\s[^>]*)?>)([\\s\\S]*?)(<\\/w:t>)/g;\n    let m;\n    while ((m = re.exec(absatz)) !== null) {\n      teile.push({ start: m.index, ende: re.lastIndex, oeffner: m[1], text: m[2], schliesser: m[3] });\n    }\n    if (!teile.length) return absatz;\n    const gesamt = teile.map(t => t.text).join('');\n    if (gesamt.indexOf('{{') === -1 && gesamt.toUpperCase().indexOf('XXX@') === -1) return absatz;\n\n    let neu = gesamt;\n    neu = neu.split('{{BUCH_AUTOR}}]').join(xmlEscape(map.BUCH_AUTOR));\n    for (const k of Object.keys(map)) {\n      neu = neu.split('{{' + k + '}}').join(xmlEscape(map[k]));\n    }\n    if (mail) neu = neu.replace(/XXX@example\\.com/gi, mail);\n    if (neu === gesamt) return absatz;\n    treffer++;\n\n    const ausgabe = [];\n    let pos = 0;\n    teile.forEach((t, i) => {\n      ausgabe.push(absatz.slice(pos, t.start));\n      let oeffner = t.oeffner;\n      let inhalt = '';\n      if (i === 0) {\n        inhalt = neu;\n        if (!/xml:space=/.test(oeffner)) oeffner = oeffner.replace(/^<w:t/, '<w:t xml:space=\"preserve\"');\n      }\n      ausgabe.push(oeffner + inhalt + t.schliesser);\n      pos = t.ende;\n    });\n    ausgabe.push(absatz.slice(pos));\n    return ausgabe.join('');\n  });\n  return { xml: neuXml, treffer };\n}\n\nfunction crc32(buf) {\n  if (!crc32.tabelle) {\n    const t = [];\n    for (let n = 0; n < 256; n++) {\n      let c = n;\n      for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;\n      t[n] = c >>> 0;\n    }\n    crc32.tabelle = t;\n  }\n  const t = crc32.tabelle;\n  let crc = -1;\n  for (let i = 0; i < buf.length; i++) crc = (crc >>> 8) ^ t[(crc ^ buf[i]) & 0xFF];\n  return (crc ^ -1) >>> 0;\n}\n\nfunction zipSchreiben(eintraege) {\n  const lokale = [], zentrale = [];\n  let offset = 0;\n  const zeit = 0, datum = (26 << 9) | (1 << 5) | 1;\n  for (const e of eintraege) {\n    const name = Buffer.from(e.pfad, 'utf8');\n    const daten = e.buf;\n    const crc = crc32(daten);\n    const lh = Buffer.alloc(30);\n    lh.writeUInt32LE(0x04034b50, 0); lh.writeUInt16LE(20, 4); lh.writeUInt16LE(0, 6);\n    lh.writeUInt16LE(0, 8); lh.writeUInt16LE(zeit, 10); lh.writeUInt16LE(datum, 12);\n    lh.writeUInt32LE(crc, 14); lh.writeUInt32LE(daten.length, 18); lh.writeUInt32LE(daten.length, 22);\n    lh.writeUInt16LE(name.length, 26); lh.writeUInt16LE(0, 28);\n    lokale.push(lh, name, daten);\n    const ch = Buffer.alloc(46);\n    ch.writeUInt32LE(0x02014b50, 0); ch.writeUInt16LE(20, 4); ch.writeUInt16LE(20, 6);\n    ch.writeUInt16LE(0, 8); ch.writeUInt16LE(0, 10); ch.writeUInt16LE(zeit, 12); ch.writeUInt16LE(datum, 14);\n    ch.writeUInt32LE(crc, 16); ch.writeUInt32LE(daten.length, 20); ch.writeUInt32LE(daten.length, 24);\n    ch.writeUInt16LE(name.length, 28); ch.writeUInt16LE(0, 30); ch.writeUInt16LE(0, 32);\n    ch.writeUInt16LE(0, 34); ch.writeUInt16LE(0, 36); ch.writeUInt32LE(0, 38); ch.writeUInt32LE(offset, 42);\n    zentrale.push(ch, name);\n    offset += 30 + name.length + daten.length;\n  }\n  const zBuf = Buffer.concat(zentrale);\n  const eocd = Buffer.alloc(22);\n  eocd.writeUInt32LE(0x06054b50, 0); eocd.writeUInt16LE(0, 4); eocd.writeUInt16LE(0, 6);\n  eocd.writeUInt16LE(eintraege.length, 8); eocd.writeUInt16LE(eintraege.length, 10);\n  eocd.writeUInt32LE(zBuf.length, 12); eocd.writeUInt32LE(offset, 16); eocd.writeUInt16LE(0, 20);\n  return Buffer.concat([...lokale, zBuf, eocd]);\n}\n\nconst eintraege = [];\nlet treffer = 0;\nlet gefunden = false;\n\nfor (const key of Object.keys(eingabe.binary || {})) {\n  const b = eingabe.binary[key];\n  const pfad = (b.directory ? b.directory + '/' : '') + b.fileName;\n  let buf = await this.helpers.getBinaryDataBuffer(0, key);\n  if (pfad === 'word/document.xml') {\n    gefunden = true;\n    const r = ersetzeInAbsaetzen(buf.toString('utf8'), map, mail);\n    treffer = r.treffer;\n    buf = Buffer.from(r.xml, 'utf8');\n  }\n  eintraege.push({ pfad, buf });\n}\n\nif (!gefunden) throw new Error('word/document.xml nicht im Archiv gefunden');\nif (treffer === 0) throw new Error('Nichts zu ersetzen - Datei war vermutlich schon bearbeitet');\n\nconst zip = zipSchreiben(eintraege);\nconst bin = await this.helpers.prepareBinaryData(zip, f['Dateiname'], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');\n\nreturn [{ json: { ersetzte_absaetze: treffer, kontakt: mail, dateien: eintraege.length, bytes: zip.length }, binary: { data: bin } }];"
+      },
+      "position": [
+        896,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "27b44f45-19a5-42e2-a000-d45713a485cf",
+      "name": "Nach Drive hochladen",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "driveId": {
+          "__rl": true,
+          "cachedResultName": "My Drive",
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('Formular').item.json['Ordner-ID'] }}"
+        },
+        "name": "={{ $('Formular').item.json['Dateiname'] }}",
+        "options": {}
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    }
+  ],
+  "connections": {
+    "Als ZIP benennen": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Entpacken",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "DOCX laden": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Als ZIP benennen",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Entpacken": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Platzhalter ersetzen",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Formular": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "DOCX laden",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Platzhalter ersetzen": {
+      "main": [
+        [
+          {
+            "node": "Nach Drive hochladen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

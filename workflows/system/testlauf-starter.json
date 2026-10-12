@@ -1,0 +1,138 @@
+{
+  "name": "00 System – Testlauf-Starter",
+  "nodes": [
+    {
+      "id": "tl_form",
+      "name": "Testlauf-Formular",
+      "parameters": {
+        "formDescription": "Startet einen Workflow sofort, ohne auf seinen Takt zu warten. Empfohlene Reihenfolge: WF05, WF08 erzeugen, WF07 erzeugen, WF06 Freigabe-Mail, dann in der Mail freigeben, danach WF07 und WF08 posten. WF09 nimmt automatisch das nächste Buch ohne Etsy-Produkte. Jeder Start kostet dasselbe wie der normale Lauf.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Schritt",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "WF05 Affiliate-Pipeline auffuellen"
+                  },
+                  {
+                    "option": "WF08 Affiliate-Pin erzeugen"
+                  },
+                  {
+                    "option": "WF07 Buch-Pins erzeugen"
+                  },
+                  {
+                    "option": "WF06 Freigabe-Mail senden"
+                  },
+                  {
+                    "option": "WF07 Buch-Pins posten"
+                  },
+                  {
+                    "option": "WF08 Affiliate-Pin posten"
+                  },
+                  {
+                    "option": "WF09 Etsy-Produkte naechstes Buch"
+                  },
+                  {
+                    "option": "WF02 Buch ab Produktion fortsetzen"
+                  },
+                  {
+                    "option": "WF03 Buch ab Cover fortsetzen"
+                  }
+                ]
+              },
+              "fieldType": "dropdown",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Buch-ID",
+              "fieldType": "text",
+              "placeholder": "nur fuer WF02/WF03 fortsetzen oder WF09 mit festem Buch",
+              "requiredField": false
+            }
+          ]
+        },
+        "formTitle": "Testlauf Wertschöpfungskette",
+        "options": {
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "Gestartet. Das Ergebnis siehst du in n8n unter Executions oder im Postfach."
+            }
+          }
+        }
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5
+    },
+    {
+      "id": "tl_map",
+      "name": "Schritt aufloesen",
+      "parameters": {
+        "jsCode": "// Uebersetzt die Auswahl im Formular in Ziel-Workflow und Modus.\n// Die Ziel-Workflows haben dafuer je einen Trigger \"Testlauf-Start\".\nconst s = String($json.Schritt || '').trim();\nconst ziele = {\n  'WF05 Affiliate-Pipeline auffuellen': { workflow_id: 'WF05_ID', modus: 'erstellen' },\n  'WF08 Affiliate-Pin erzeugen':        { workflow_id: 'WF08_ID', modus: 'erstellen' },\n  'WF07 Buch-Pins erzeugen':            { workflow_id: 'WF07_ID', modus: 'erstellen' },\n  'WF06 Freigabe-Mail senden':          { workflow_id: 'WF06_ID', modus: 'mail' },\n  'WF07 Buch-Pins posten':              { workflow_id: 'WF07_ID', modus: 'posten' },\n  'WF08 Affiliate-Pin posten':          { workflow_id: 'WF08_ID', modus: 'posten' },\n  'WF09 Etsy-Produkte naechstes Buch':  { workflow_id: 'WF09_ID', modus: 'auto' },\n  'WF02 Buch ab Produktion fortsetzen': { workflow_id: 'WF02_ID', modus: 'fortsetzen', braucht_id: true },\n  'WF03 Buch ab Cover fortsetzen':      { workflow_id: 'WF03_ID', modus: 'fortsetzen', braucht_id: true }\n};\nconst z = ziele[s];\nif (!z) throw new Error('Unbekannter Schritt: ' + s);\nconst buchId = String($json['Buch-ID'] || '').trim();\nif (z.braucht_id && !buchId) throw new Error('Fuer \"' + s + '\" bitte eine Buch-ID angeben.');\nconst out = { workflow_id: z.workflow_id, modus: z.modus, schritt: s, quelle: 'testlauf', gestartet_am: new Date().toISOString() };\nif (buchId) out.buch_id = buchId;\nreturn [{ json: out }];"
+      },
+      "position": [
+        240,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "tl_exec",
+      "name": "Ziel-Workflow starten",
+      "parameters": {
+        "options": {
+          "waitForSubWorkflow": false
+        },
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.workflow_id }}"
+        }
+      },
+      "position": [
+        480,
+        0
+      ],
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1
+    }
+  ],
+  "connections": {
+    "Schritt aufloesen": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Ziel-Workflow starten",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Testlauf-Formular": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Schritt aufloesen",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Berlin",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "errorWorkflow": "ERROR_WORKFLOW_ID",
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

@@ -1,0 +1,1453 @@
+{
+  "name": "01 Buch – Recherche & Freigabe",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Buch-Druckerei 🚀",
+        "formDescription": "Startet die vollautomatische Suche nach der nächsten Bestseller-Nische.",
+        "options": {
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "Die Maschinen laufen! Schau gleich in dein E-Mail-Postfach."
+            }
+          }
+        }
+      },
+      "id": "n_form",
+      "name": "On form submission",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_FILE_ID",
+          "mode": "list",
+          "cachedResultName": "Blacklist"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Bisherige Nischen"
+        },
+        "options": {}
+      },
+      "id": "n_getblacklist",
+      "name": "Get row(s) in sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        80
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "Bisherige Nischen"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "n_agg",
+      "name": "Aggregate",
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        448,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Bitte finde jetzt eine neue, unbenutzte Nische und erstelle das Inhaltsverzeichnis. Denk an dein Budget: Du darfst das Web-Such-Tool maximal 4 Mal aufrufen, danach musst du sofort den finalen Text ausgeben!",
+        "options": {
+          "systemMessage": "=Du bist ein brillanter Marktforscher und Experte für Amazon KDP. Deine Aufgabe ist es, nach einer neuen, extrem profitablen Mikro-Nische für ein Ratgeber-Buch (Jahr 2026) zu suchen.\n\n--- PHASE 1: DEINE RECHERCHE (WEB-SUCHE) ---\n\n🚨 STOPP-REGEL (HÖCHSTE PRIORITÄT): Nutze dein Such-Werkzeug MAXIMAL 4 MAL! Nach der 4. Suche MUSST du aufhören und deine Entscheidung treffen, selbst wenn die Ergebnisse noch nicht perfekt sind. Es gibt keine Ausnahmen!\n\nGoogle-Knigge: Verwende für die Web-Suche AUSSCHLIESSLICH extrem kurze, natürliche Suchanfragen von maximal 2 bis 5 Wörtern. Reihe NIEMALS viele Keywords aneinander! Wenn eine Suche keine Ergebnisse liefert, versuche es mit einem noch kürzeren Begriff.\n\nAnalysiere die Konkurrenz und gehe dann sofort zu Phase 2 über.\n\n--- PHASE 2: REGELN FÜR DAS BUCHKONZEPT ---\n\nNische: Die finale Benennung darf MAXIMAL 8 bis 9 Wörter lang sein.\nHaupttitel: Erstelle 4 unterschiedliche emotionale Haupttitel (jeweils 1 bis 5 Wörter).\nUntertitel: Erstelle 4 dazu passende erklärende Untertitel (max. 10 Wörter, die exakt das Problem benennen).\nSprache: Das komplette Konzept MUSS auf Deutsch sein. Eingedeutschte Wörter wie z.B. offline sind absolut in Ordnung.\n\nBlacklist: Folgende Nischen haben wir bereits, wähle zwingend etwas anderes: {{ $json.blacklist_nischen }}\n\nBEREITS VERÖFFENTLICHTE BÜCHER (Titel, Nische und Kapitelstruktur):\n{{ $json.bisherige_buecher }}\n\nABGRENZUNGS-REGEL (ZWINGEND): Dein neues Konzept muss sich von JEDEM dieser Bücher deutlich unterscheiden. Nicht nur im Thema, sondern auch in der Gliederungslogik. Wiederhole keine Kapitelfolge und kein Aufbaumuster, das oben schon vorkommt. Wenn mehrere der bestehenden Bücher demselben Schema folgen (erst Problem erklären, dann Ursachen, dann Schritte, dann Rückfall vermeiden), dann baue dein Inhaltsverzeichnis bewusst anders auf, zum Beispiel entlang eines Zeitverlaufs, entlang von Lebenssituationen, entlang typischer Fehler oder als Frage-Antwort-Struktur. Ein Konzept, das inhaltlich oder strukturell zu nah an einem bestehenden Buch liegt, wird später automatisch abgelehnt und die Arbeit ist verloren.\n\n--- PHASE 3: DEIN OUTPUT-FORMAT (STRIKT BEACHTEN!) ---\nSchreibe deinen Bericht EXAKT in der folgenden Struktur. Halte dich zwingend an diese Reihenfolge und verwende exakt diese Überschriften:\n\nKI-BUSINESS-PLAN:\nBegründe hier SEHR KURZ: \n1. Warum diese Nische? \n2. Warum ist das ein wachsender Trend für 2026? \n3. Wer ist die Zielgruppe? \n4. Welches Problem wird gelöst?\n\n---SCHNITT---\n\nBUCH-DATEN:\nNische: [Deine 8-9 Wörter]\n\nOption 1:\nHaupttitel: [Dein 1. Titel]\nUntertitel: [Dein 1. Untertitel]\n\nOption 2:\nHaupttitel: [Dein 2. Titel]\nUntertitel: [Dein 2. Untertitel]\n\nOption 3:\nHaupttitel: [Dein 3. Titel]\nUntertitel: [Dein 3. Untertitel]\n\nOption 4:\nHaupttitel: [Dein 4. Titel]\nUntertitel: [Dein 4. Untertitel]\n\nINHALTSVERZEICHNIS:\n(Liste hier die 9 bis 10 Kapitel auf. Erstelle für jedes Kapitel einen \"kapitel_titel_kurz\" und eine KURZE \"beschreibung\", was exakt im Kapitel passiert).",
+          "maxIterations": 8
+        }
+      },
+      "id": "n_rech",
+      "name": "Recherche-Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        672,
+        -96
+      ],
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "maxTries": 5
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-5",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {
+          "maxTokensToSample": 16000
+        }
+      },
+      "id": "n_m1",
+      "name": "Anthropic Chat Model1",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        576,
+        96
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Wandle den folgenden Textbericht über ein neues Buchprojekt in strukturierte Daten um. \n\nWICHTIGE REGELN:\n1. Erfinde keine neuen Informationen dazu und verändere nicht die Sprache.\n2. Extrahiere die 4 Buchtitel und 4 Untertitel und trage sie in die entsprechenden 8 Felder (titel_1, untertitel_1, etc.) ein.\n3. Übernimm den Namen der Nische.\n4. Übernimm die Liste der Kapitel mit ihren kurzen Titeln und der kurzen Beschreibung.\n\nFülle einfach das vorgegebene Daten-Schema mit diesen Informationen aus.\n\nHier ist der Bericht, den du umwandeln sollst:\n{{ $json.output }}",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "id": "n_struk",
+      "name": "Struktur-Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1056,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-5",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {
+          "maxTokensToSample": 16000
+        }
+      },
+      "id": "n_m2",
+      "name": "Anthropic Chat Model2",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        1024,
+        128
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"titel_1\": \"Erster Beispiel-Titel auf Deutsch\",\n  \"untertitel_1\": \"Erster passender Untertitel\",\n  \"titel_2\": \"Zweiter Beispiel-Titel auf Deutsch\",\n  \"untertitel_2\": \"Zweiter passender Untertitel\",\n  \"titel_3\": \"Dritter Beispiel-Titel auf Deutsch\",\n  \"untertitel_3\": \"Dritter passender Untertitel\",\n  \"titel_4\": \"Vierter Beispiel-Titel auf Deutsch\",\n  \"untertitel_4\": \"Vierter passender Untertitel\",\n  \"nische\": \"Beispiel Nische\",\n  \"kapitel\": [\n    {\n      \"kapitel_titel_kurz\": \"Kurzer knackiger Name\",\n      \"beschreibung\": \"kurze Beschreibung der Inhalte für die Kontrolle\"\n    }\n  ]\n}",
+        "autoFix": true
+      },
+      "id": "n_parser",
+      "name": "Structured Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1152,
+        128
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-5",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {
+          "maxTokensToSample": 16000
+        }
+      },
+      "id": "n_m3",
+      "name": "Anthropic Chat Model3",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        1232,
+        336
+      ],
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_FILE_ID",
+          "mode": "list",
+          "cachedResultName": "Blacklist"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Bisherige Nischen"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Bisherige Nischen": "={{ $json.output.nische }}"
+          },
+          "matchingColumns": [
+            "Bisherige Nischen"
+          ],
+          "schema": [
+            {
+              "id": "Bisherige Nischen",
+              "displayName": "Bisherige Nischen",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "n_appblack",
+      "name": "Append row in sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1520,
+        -96
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "you@example.com",
+        "subject": "=Buch-Check: {{ $json['Bisherige Nischen'] }}",
+        "message": "=🚨 NEUES BUCHPROJEKT ZUR FREIGABE 🚨\n\nTITEL VORSCHLÄGE: \n1. {{ $('Struktur-Agent').item.json.output.titel_1 }}\n2. {{ $('Struktur-Agent').item.json.output.titel_2 }}\n3. {{ $('Struktur-Agent').item.json.output.titel_3 }}\n4. {{ $('Struktur-Agent').item.json.output.titel_4 }}\n\nUNTERTITEL VORSCHLÄGE:\n1. {{ $('Struktur-Agent').item.json.output.untertitel_1 }}\n2. {{ $('Struktur-Agent').item.json.output.untertitel_2 }}\n3. {{ $('Struktur-Agent').item.json.output.untertitel_3 }}\n4. {{ $('Struktur-Agent').item.json.output.untertitel_4 }}\n\nNISCHE: \n{{ $('Struktur-Agent').item.json.output.nische }}\n\nBUSINESS-STRATEGIE:\n{{ $('Recherche-Agent').item.json.output.split('---SCHNITT---')[0] }}\n\nINHALTSVERZEICHNIS:\n{{ $('Struktur-Agent').item.json.output.kapitel.map(k => '📌 ' + k.kapitel_titel_kurz + '\\n📝 ' + k.beschreibung + '\\n').join('\\n') }}\n\n",
+        "responseType": "customForm",
+        "formFields": {
+          "values": [
+            {
+              "defaultValue": "Welchen Haupttitel wählst du?",
+              "fieldLabel": "titel_wahl",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "={{ $('Struktur-Agent').item.json.output.titel_1 }}"
+                  },
+                  {
+                    "option": "={{ $('Struktur-Agent').item.json.output.titel_2 }}"
+                  },
+                  {
+                    "option": "={{ $('Struktur-Agent').item.json.output.titel_3 }}"
+                  },
+                  {
+                    "option": "={{ $('Struktur-Agent').item.json.output.titel_4 }}"
+                  }
+                ]
+              },
+              "fieldType": "dropdown",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "titel_eigen",
+              "fieldType": "text",
+              "placeholder": "Optional: eigener Haupttitel. Wenn ausgefüllt, gilt dieser statt der Auswahl oben.",
+              "requiredField": false
+            },
+            {
+              "defaultValue": "Welcher Untertitel passt am besten zu deinem Haupttitel?",
+              "fieldLabel": "untertitel_wahl",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "={{ $('Struktur-Agent').item.json.output.untertitel_1 }}"
+                  },
+                  {
+                    "option": "={{ $('Struktur-Agent').item.json.output.untertitel_2 }}"
+                  },
+                  {
+                    "option": "={{ $('Struktur-Agent').item.json.output.untertitel_3 }}"
+                  },
+                  {
+                    "option": "={{ $('Struktur-Agent').item.json.output.untertitel_4 }}"
+                  }
+                ]
+              },
+              "fieldType": "dropdown",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "untertitel_eigen",
+              "fieldType": "text",
+              "placeholder": "Optional: eigener Untertitel. Wenn ausgefüllt, gilt dieser statt der Auswahl oben.",
+              "requiredField": false
+            },
+            {
+              "defaultValue": "Wähle deinen Character!",
+              "fieldLabel": "autor_wahl",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Pseudonym A"
+                  },
+                  {
+                    "option": "Pseudonym B"
+                  },
+                  {
+                    "option": "Pseudonym C"
+                  }
+                ]
+              },
+              "fieldType": "dropdown",
+              "requiredField": true
+            },
+            {
+              "defaultValue": "Bereit zur Freigabe?",
+              "fieldLabel": "entscheidung",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Projekt freigeben"
+                  },
+                  {
+                    "option": "Ablehnen und neu starten"
+                  }
+                ]
+              },
+              "fieldType": "dropdown"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "n_freigabe",
+      "name": "Send message and wait for response",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1744,
+        -96
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b79239a8-c2f0-43b8-bad6-06d8161670bf",
+              "name": "autor",
+              "type": "string",
+              "value": "={{ $json.data.autor_wahl }}"
+            },
+            {
+              "id": "cc10881f-249a-4a6c-8955-c504e9ce9565",
+              "name": "titel",
+              "type": "string",
+              "value": "={{ ($json.data.titel_eigen || '').trim() || $json.data.titel_wahl }}"
+            },
+            {
+              "id": "bbd9d00a-ce45-4f16-89fe-8ecfa9f03946",
+              "name": "untertitel",
+              "type": "string",
+              "value": "={{ ($json.data.untertitel_eigen || '').trim() || $json.data.untertitel_wahl }}"
+            },
+            {
+              "id": "2f41b6d7-05f5-45f5-aa22-d91aa7fe2299",
+              "name": "entscheidung",
+              "type": "string",
+              "value": "={{ $json.data.entscheidung }}"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "id": "n_autor",
+      "name": "Autor_festlegen",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1968,
+        -96
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d6ac2795-0d7d-403e-a11c-2303bb4325d6",
+              "leftValue": "={{ $json.entscheidung }}",
+              "rightValue": "Projekt freigeben",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "n_if1",
+      "name": "If1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2192,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "folder",
+        "name": "={{ $now.format('yyyy-MM-dd') }} {{ $('Autor_festlegen').item.json.titel }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "GOOGLE_FILE_ID",
+          "mode": "list",
+          "cachedResultName": "Ergebnisse Buch Workflow"
+        },
+        "options": {}
+      },
+      "id": "n_ordner",
+      "name": "Ordner_erstellen",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2416,
+        80
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "buch_id",
+              "value": "={{ String(Math.max(0, ...$('Buch-IDs neu lesen').all().map(i => Number(String(i.json['Buch-ID'] == null ? '' : i.json['Buch-ID']).trim())).filter(n => Number.isInteger(n) && n > 0 && n < 100000)) + 1) }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "status",
+              "value": "freigegeben",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "autor",
+              "value": "={{ $('Autor_festlegen').item.json.autor }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "titel",
+              "value": "={{ $('Autor_festlegen').item.json.titel }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "untertitel",
+              "value": "={{ $('Autor_festlegen').item.json.untertitel }}",
+              "type": "string"
+            },
+            {
+              "id": "a6",
+              "name": "nische",
+              "value": "={{ $('Struktur-Agent').item.json.output.nische }}",
+              "type": "string"
+            },
+            {
+              "id": "a7",
+              "name": "ordner_id",
+              "value": "={{ $('Ordner_erstellen').first().json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "a8",
+              "name": "freigegeben_am",
+              "value": "={{ $now.format('yyyy-MM-dd HH:mm') }}",
+              "type": "string"
+            },
+            {
+              "id": "a9",
+              "name": "kapitel_json",
+              "value": "={{ JSON.stringify($('Struktur-Agent').item.json.output.kapitel) }}",
+              "type": "string"
+            },
+            {
+              "id": "a10",
+              "name": "planungsdaten_json",
+              "value": "={{ JSON.stringify({ titel_optionen: [$('Struktur-Agent').item.json.output.titel_1, $('Struktur-Agent').item.json.output.titel_2, $('Struktur-Agent').item.json.output.titel_3, $('Struktur-Agent').item.json.output.titel_4], untertitel_optionen: [$('Struktur-Agent').item.json.output.untertitel_1, $('Struktur-Agent').item.json.output.untertitel_2, $('Struktur-Agent').item.json.output.untertitel_3, $('Struktur-Agent').item.json.output.untertitel_4], gewaehlter_titel: $('Autor_festlegen').item.json.titel, gewaehlter_untertitel: $('Autor_festlegen').item.json.untertitel, nische_begruendung: $('Struktur-Agent').item.json.output.nische, business_strategie: $('Recherche-Agent').item.json.output.split('---SCHNITT---')[0], kapitel: $('Struktur-Agent').item.json.output.kapitel }) }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "n_sammeln",
+      "name": "Buch-Daten sammeln",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2640,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "createFromText",
+        "content": "={{ JSON.stringify({ buch_id: $json.buch_id, titel: $json.titel, untertitel: $json.untertitel, autor: $json.autor, nische: $json.nische, kapitel: $('Struktur-Agent').item.json.output.kapitel }, null, 2) }}",
+        "name": "konzept.json",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Ordner_erstellen').item.json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "id": "n_konzept",
+      "name": "Konzept ablegen",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2864,
+        80
+      ],
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_FILE_ID",
+          "mode": "list",
+          "cachedResultName": "Buch-Master"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 0,
+          "mode": "list",
+          "cachedResultName": "Buch-Master"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Pseudonym (Autor)": "={{ $('Buch-Daten sammeln').item.json.autor }}",
+            "Buchtitel": "={{ $('Buch-Daten sammeln').item.json.titel }}",
+            "Untertitel": "={{ $('Buch-Daten sammeln').item.json.untertitel }}",
+            "Pinterest_Status": "nicht gepinnt",
+            "Buch-ID": "={{ $('Buch-Daten sammeln').item.json.buch_id }}",
+            "Status": "={{ $('Buch-Daten sammeln').item.json.status }}",
+            "Nische": "={{ $('Buch-Daten sammeln').item.json.nische }}",
+            "Ordner-ID": "={{ $('Buch-Daten sammeln').item.json.ordner_id }}",
+            "Freigegeben am": "={{ $('Buch-Daten sammeln').item.json.freigegeben_am }}",
+            "Planungsdaten (JSON)": "={{ $('Buch-Daten sammeln').item.json.planungsdaten_json }}",
+            "Affiliate-Ordner-ID": "={{ $('Unterordner IDs').first().json.affiliate_ordner_id }}",
+            "Etsy-Ordner-ID": "={{ $('Unterordner IDs').first().json.etsy_ordner_id }}",
+            "Pins-Ordner-ID": "={{ $('Unterordner IDs').first().json.pins_ordner_id }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Pseudonym (Autor)",
+              "displayName": "Pseudonym (Autor)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Buchtitel",
+              "displayName": "Buchtitel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Untertitel",
+              "displayName": "Untertitel",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Beschreibung",
+              "displayName": "Beschreibung",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "7 KDP-Keywords",
+              "displayName": "7 KDP-Keywords",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Kategorien (Backend-Pfade)",
+              "displayName": "Kategorien (Backend-Pfade)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Amazon Attribution Link",
+              "displayName": "Amazon Attribution Link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Pinterest_Status",
+              "displayName": "Pinterest_Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ASIN (E-Book)",
+              "displayName": "ASIN (E-Book)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "ASIN (Taschenbuch)",
+              "displayName": "ASIN (Taschenbuch)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Buch-ID",
+              "displayName": "Buch-ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Nische",
+              "displayName": "Nische",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Preisstrategie",
+              "displayName": "Preisstrategie",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Klappentext",
+              "displayName": "Klappentext",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "A+ Content",
+              "displayName": "A+ Content",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Ordner-ID",
+              "displayName": "Ordner-ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Freigegeben am",
+              "displayName": "Freigegeben am",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Fertig am",
+              "displayName": "Fertig am",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Planungsdaten (JSON)",
+              "displayName": "Planungsdaten (JSON)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "n_appmaster",
+      "name": "Append Buch-Master",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3088,
+        80
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "parameters": {
+        "description": "Web-Suchwerkzeug. Uebergib eine kurze Suchanfrage (2-5 Woerter) im Feld 'query'. Liefert aktuelle Web-Suchergebnisse zur Nischen-Recherche zurueck.",
+        "workflowId": {
+          "__rl": true,
+          "value": "TAVILY_SUB_ID",
+          "mode": "list",
+          "cachedResultName": "Sub-Workflow: Tavily Suche"
+        },
+        "workflowInputs": {
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true,
+          "mappingMode": "defineBelow",
+          "matchingColumns": [],
+          "schema": [
+            {
+              "canBeUsedToMatch": false,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "query",
+              "id": "query",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "value": {
+            "query": "={{ $fromAI('query', 'Kurze Suchanfrage von 2 bis 5 Woertern fuer die Nischen-Recherche', 'string') }}"
+          }
+        }
+      },
+      "id": "n_tooltavily",
+      "name": "Tavily Suche (Tool)",
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        816,
+        144
+      ]
+    },
+    {
+      "id": "wf1_handoff",
+      "name": "WF2-Daten",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        3312,
+        80
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "h1",
+              "name": "buch_id",
+              "type": "string",
+              "value": "={{ $('Buch-Daten sammeln').item.json.buch_id }}"
+            },
+            {
+              "id": "h2",
+              "name": "titel",
+              "type": "string",
+              "value": "={{ $('Buch-Daten sammeln').item.json.titel }}"
+            },
+            {
+              "id": "h3",
+              "name": "untertitel",
+              "type": "string",
+              "value": "={{ $('Buch-Daten sammeln').item.json.untertitel }}"
+            },
+            {
+              "id": "h4",
+              "name": "autor",
+              "type": "string",
+              "value": "={{ $('Buch-Daten sammeln').item.json.autor }}"
+            },
+            {
+              "id": "h5",
+              "name": "nische",
+              "type": "string",
+              "value": "={{ $('Buch-Daten sammeln').item.json.nische }}"
+            },
+            {
+              "id": "h6",
+              "name": "ordner_id",
+              "type": "string",
+              "value": "={{ $('Buch-Daten sammeln').item.json.ordner_id }}"
+            },
+            {
+              "id": "h7",
+              "name": "kapitel_json",
+              "type": "string",
+              "value": "={{ $('Buch-Daten sammeln').item.json.kapitel_json }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "wf1_exec",
+      "name": "→ WF2 (Produktion)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        3536,
+        80
+      ],
+      "parameters": {
+        "options": {},
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "cachedResultName": "Buch 2 – Produktion (Text + DOCX)",
+          "mode": "list",
+          "value": "WF02_ID"
+        }
+      }
+    },
+    {
+      "id": "n_bisher",
+      "name": "Bisherige Buecher holen",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        -280
+      ],
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "cachedResultName": "Buch-Metadaten für Workflows",
+          "mode": "list",
+          "value": "GOOGLE_FILE_ID"
+        },
+        "options": {},
+        "sheetName": {
+          "__rl": true,
+          "cachedResultName": "Buch-Metadaten für Workflows",
+          "mode": "list",
+          "value": 0
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "n_kontext",
+      "name": "Kontext bauen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        -280
+      ],
+      "parameters": {
+        "jsCode": "// Baut den Kontext bereits veroeffentlichter Buecher fuer den Recherche-Agenten\n// und als Vergleichsbasis fuer die spaetere Aehnlichkeitspruefung.\n\nconst zeilen = [];\nconst roh = [];\n\nfor (const item of $input.all()) {\n  const b = item.json || {};\n  const titel = String(b['Buchtitel'] || '').trim();\n  if (!titel) continue;\n\n  let kapitel = [];\n  try {\n    const p = JSON.parse(String(b['Planungsdaten (JSON)'] || '{}'));\n    kapitel = (p.kapitel || []).map(k => String((k && k.kapitel_titel_kurz) || '')).filter(Boolean);\n  } catch (e) { kapitel = []; }\n\n  const eintrag = {\n    titel: titel,\n    untertitel: String(b['Untertitel'] || '').trim(),\n    nische: String(b['Nische'] || '').trim(),\n    kapitel: kapitel\n  };\n  roh.push(eintrag);\n\n  const kapText = kapitel.length ? kapitel.join('; ') : '(nicht dokumentiert)';\n  zeilen.push('- ' + titel + ' | Nische: ' + (eintrag.nische || 'unbekannt') + ' | Kapitel: ' + kapText);\n}\n\nlet blacklist = '';\ntry { blacklist = String($('Aggregate').first().json['Bisherige Nischen'] || ''); } catch (e) { blacklist = ''; }\n\nreturn [{ json: {\n  bisherige_buecher: zeilen.length ? zeilen.join('\\n') : '(noch keine veroeffentlichten Buecher)',\n  buecher_roh: roh,\n  anzahl_buecher: roh.length,\n  blacklist_nischen: blacklist\n} }];"
+      }
+    },
+    {
+      "id": "n_sim",
+      "name": "Aehnlichkeit pruefen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        -96
+      ],
+      "parameters": {
+        "jsCode": "// Vergleicht das neue Buchkonzept mit allen bereits veroeffentlichten Buechern.\n// Ab HART wird die Produktion gestoppt, ab WARN nur markiert.\n\nconst HART = 0.65;\nconst WARN = 0.45;\n\nconst STOPP = new Set(['der','die','das','und','fuer','mit','von','im','in','ein','eine','einen','einem','eines','auf','bei','aus','als','auch','nach','ueber','den','dem','des','sich','ist','sind','wie','mehr','ohne','durch','vor','wird','werden','kann','koennen','man','ihre','ihrem','deine','deinem','meine','dass','nicht','oder','aber','was','wer','wenn','dann','noch','nur','schon','beim','zum','zur','vom','ins','sowie','damit','dabei','diese','dieser','dieses','jeder','jede','jedes','alle','allen','ratgeber','buch','buches','kapitel','titel','untertitel','nische','beschreibung','optionen','haupttitel','output','kapiteltitel','kurz','praktisch','richtig','endlich','einfach','besser','wichtig','sollten','sollte']);\n\nfunction tokens(text) {\n  return String(text || '')\n    .toLowerCase()\n    .replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/ß/g, 'ss')\n    .replace(/[^a-z0-9\\s]/g, ' ')\n    .split(/\\s+/)\n    .filter(w => w.length >= 4 && !STOPP.has(w));\n}\n\nfunction jaccard(a, b) {\n  if (!a.size || !b.size) return 0;\n  let schnitt = 0;\n  a.forEach(x => { if (b.has(x)) schnitt++; });\n  return schnitt / (a.size + b.size - schnitt);\n}\n\nconst rein = $input.first().json || {};\nconst neu = new Set(tokens(JSON.stringify(rein.output || {})));\n\nlet alte = [];\ntry { alte = $('Kontext bauen').first().json.buecher_roh || []; } catch (e) { alte = []; }\n\nlet best = 0;\nlet bestesBuch = '';\nconst alleScores = [];\n\nfor (const b of alte) {\n  const altText = [b.titel, b.untertitel, b.nische, (b.kapitel || []).join(' ')].join(' ');\n  const s = jaccard(neu, new Set(tokens(altText)));\n  alleScores.push({ titel: b.titel, score: Math.round(s * 100) / 100 });\n  if (s > best) { best = s; bestesBuch = b.titel; }\n}\n\nalleScores.sort((x, y) => y.score - x.score);\nconst score = Math.round(best * 100) / 100;\n\nif (score >= HART) {\n  throw new Error('ABBRUCH wegen Aehnlichkeit: Das neue Konzept ueberschneidet sich zu stark mit \"' + bestesBuch + '\" (Score ' + score + ', Grenze ' + HART + '). Produktion gestoppt, bevor Kosten entstehen. Bitte WF01 erneut starten.');\n}\n\nreturn [{ json: Object.assign({}, rein, {\n  aehnlichkeit_score: score,\n  aehnlichstes_buch: bestesBuch,\n  aehnlichkeit_warnung: score >= WARN,\n  aehnlichkeit_top3: alleScores.slice(0, 3),\n  verglichen_mit: alte.length\n}) }];"
+      }
+    },
+    {
+      "id": "n_subplan",
+      "name": "Unterordner planen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2480,
+        240
+      ],
+      "parameters": {
+        "jsCode": "// Die Unterordner werden EINMAL beim Anlegen des Buches erzeugt.\n// Kein spaeteres Suchen oder Anlegen in WF03/07/08/09 mehr.\nconst parent = String(($('Ordner_erstellen').first().json || {}).id || '');\nif (!parent) throw new Error('Buchordner-ID fehlt, Unterordner koennen nicht angelegt werden.');\n\nreturn [\n  { json: { slot: 'pins', name: 'Buch-Pins', parent: parent } },\n  { json: { slot: 'affiliate', name: 'Affiliate-Pins', parent: parent } },\n  { json: { slot: 'etsy', name: 'Etsy', parent: parent } }\n];"
+      }
+    },
+    {
+      "id": "n_submake",
+      "name": "Unterordner anlegen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        2640,
+        240
+      ],
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "jsonBody": "={{ JSON.stringify({ name: $json.name, mimeType: 'application/vnd.google-apps.folder', parents: [$json.parent] }) }}",
+        "method": "POST",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "options": {},
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "id,name,parents"
+            }
+          ]
+        },
+        "sendBody": true,
+        "sendQuery": true,
+        "specifyBody": "json",
+        "url": "https://www.googleapis.com/drive/v3/files"
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "n_subids",
+      "name": "Unterordner IDs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2800,
+        240
+      ],
+      "parameters": {
+        "jsCode": "const plan = $('Unterordner planen').all().map(i => i.json);\nconst neu = $input.all().map(i => i.json);\n\nconst map = {};\nfor (let i = 0; i < plan.length; i++) {\n  const id = String(((neu[i] || {}).id) || '');\n  if (!id) throw new Error('Unterordner \"' + plan[i].name + '\" konnte nicht angelegt werden.');\n  map[plan[i].slot] = id;\n}\n\nreturn [{ json: {\n  pins_ordner_id: map.pins || '',\n  affiliate_ordner_id: map.affiliate || '',\n  etsy_ordner_id: map.etsy || ''\n} }];"
+      }
+    },
+    {
+      "id": "n_idfresh",
+      "name": "Buch-IDs neu lesen",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2800,
+        420
+      ],
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "cachedResultName": "Buch-Master",
+          "mode": "list",
+          "value": "GOOGLE_FILE_ID"
+        },
+        "options": {},
+        "sheetName": {
+          "__rl": true,
+          "cachedResultName": "Buch-Master",
+          "mode": "list",
+          "value": 0
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Recherche-Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recherche-Agent": {
+      "main": [
+        [
+          {
+            "node": "Struktur-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Struktur-Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Struktur-Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "Autor_festlegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Autor_festlegen": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Ordner_erstellen",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buch-Daten sammeln": {
+      "main": [
+        [
+          {
+            "node": "Konzept ablegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Konzept ablegen": {
+      "main": [
+        [
+          {
+            "node": "Append Buch-Master",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Tavily Suche (Tool)": {
+      "ai_tool": [
+        [
+          {
+            "node": "Recherche-Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append Buch-Master": {
+      "main": [
+        [
+          {
+            "node": "WF2-Daten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WF2-Daten": {
+      "main": [
+        [
+          {
+            "node": "→ WF2 (Produktion)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Bisherige Buecher holen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bisherige Buecher holen": {
+      "main": [
+        [
+          {
+            "node": "Kontext bauen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kontext bauen": {
+      "main": [
+        [
+          {
+            "node": "Recherche-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Struktur-Agent": {
+      "main": [
+        [
+          {
+            "node": "Aehnlichkeit pruefen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aehnlichkeit pruefen": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ordner_erstellen": {
+      "main": [
+        [
+          {
+            "node": "Unterordner planen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unterordner planen": {
+      "main": [
+        [
+          {
+            "node": "Unterordner anlegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unterordner anlegen": {
+      "main": [
+        [
+          {
+            "node": "Unterordner IDs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unterordner IDs": {
+      "main": [
+        [
+          {
+            "node": "Buch-IDs neu lesen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buch-IDs neu lesen": {
+      "main": [
+        [
+          {
+            "node": "Buch-Daten sammeln",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "binaryMode": "separate",
+    "errorWorkflow": "ERROR_WORKFLOW_ID"
+  }
+}

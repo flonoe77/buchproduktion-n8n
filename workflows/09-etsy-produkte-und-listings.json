@@ -1,0 +1,1942 @@
+{
+  "name": "09 Etsy – Produkte & Listings",
+  "nodes": [
+    {
+      "id": "e_form",
+      "name": "Etsy-Fabrik Start",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "formTitle": "Etsy-Fabrik 🛒",
+        "formDescription": "Erstellt digitale Etsy-Produkte aus einem fertigen Buch. Buch-ID leer lassen: Der Workflow nimmt automatisch das nächste Buch, das noch keine Etsy-Produkte hat.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "buch_id",
+              "placeholder": "leer = nächstes Buch ohne Etsy-Produkte",
+              "requiredField": false
+            }
+          ]
+        },
+        "options": {
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "Die Produkt-Schmiede läuft! Freigabe-Mail kommt gleich."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "e_load",
+      "name": "Buch laden",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_FILE_ID",
+          "mode": "list",
+          "cachedResultName": "Buch-Master"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 0,
+          "mode": "list",
+          "cachedResultName": "Buch-Master"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Buch-ID",
+              "lookupValue": "={{ $json.buch_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "e_daten",
+      "name": "Buch-Daten",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "buch_id",
+              "value": "={{ $json['Buch-ID'] }}",
+              "type": "string"
+            },
+            {
+              "id": "a2",
+              "name": "titel",
+              "value": "={{ $json.Buchtitel }}",
+              "type": "string"
+            },
+            {
+              "id": "a3",
+              "name": "untertitel",
+              "value": "={{ $json.Untertitel }}",
+              "type": "string"
+            },
+            {
+              "id": "a4",
+              "name": "autor",
+              "value": "={{ $json['Pseudonym (Autor)'] }}",
+              "type": "string"
+            },
+            {
+              "id": "a5",
+              "name": "nische",
+              "value": "={{ $json.Nische }}",
+              "type": "string"
+            },
+            {
+              "id": "a6",
+              "name": "beschreibung",
+              "value": "={{ $json.Beschreibung }}",
+              "type": "string"
+            },
+            {
+              "id": "a7",
+              "name": "ordner_id",
+              "value": "={{ $json['Ordner-ID'] }}",
+              "type": "string"
+            },
+            {
+              "id": "a8",
+              "name": "planungsdaten",
+              "value": "={{ $json['Planungsdaten (JSON)'] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e_strat",
+      "name": "Produkt-Strategie-Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Du bist Produktentwickler für digitale Etsy-Downloads im deutschsprachigen Markt.\n\nBUCH-KONTEXT:\nTitel: {{ $('Buch-Daten').first().json.titel }}\nUntertitel: {{ $('Buch-Daten').first().json.untertitel }}\nNische: {{ $('Buch-Daten').first().json.nische }}\nBeschreibung: {{ $('Buch-Daten').first().json.beschreibung }}\nKapitelstruktur (JSON): {{ $('Buch-Daten').first().json.planungsdaten }}\n\nMANUSKRIPT (Auszug, ggf. gekürzt):\n{{ String($json.text || '(Manuskript nicht verfügbar – arbeite dann allein mit dem Buch-Kontext oben)').slice(0, 60000) }}\n\nAUFGABE:\nEntwickle GENAU 5 eigenständige digitale Produkte (PDF-Downloads), die aus den Themen dieses Buches abgeleitet sind und sich auf Etsy verkaufen lassen. Erlaubte Typen: Checkliste, Planer, Tracker, Tagebuch/Journal, Workbook, Vorlagen-Set.\n\nREGELN:\n- Stütze dich auf die tatsächlichen Methoden, Begriffe, Modelle und Schritt-für-Schritt-Systeme aus dem Manuskript. Verwende dieselbe Terminologie wie das Buch.\n- Jedes Produkt muss OHNE das Buch eigenständig funktionieren und echten Nutzen bieten\n- Kein 1:1-Kopieren von Buchinhalten, sondern praktische Umsetzungs-Werkzeuge zu den Themen\n- Titel auf Deutsch, konkret und suchtauglich (was würde jemand bei Etsy eingeben?)\n- Preis zwischen 2.99 und 7.99 EUR, je nach Umfang\n- inhalt_konzept: 3-5 Sätze, die exakt beschreiben, welche Seiten/Elemente das PDF enthält\n- quellen_auszug: 150-300 Wörter aus dem Manuskript verdichtet – die konkreten Methoden, Begriffe, Schrittfolgen, Fragen und Beispiele, die für GENAU dieses Produkt gebraucht werden. Das ist die inhaltliche Arbeitsgrundlage für die spätere Erstellung, also konkret und nicht zusammenfassend-vage.\n\nAntworte NUR mit validem JSON, exakt in diesem Format, ohne Markdown:\n{\"produkte\":[{\"nr\":1,\"typ\":\"Checkliste\",\"titel\":\"...\",\"beschreibung_kurz\":\"...\",\"inhalt_konzept\":\"...\",\"quellen_auszug\":\"...\",\"preis_eur\":4.99}]}",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "e_m1",
+      "name": "Anthropic Strategie",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        600,
+        220
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-5",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {
+          "maxTokensToSample": 16000
+        }
+      },
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "id": "e_p1",
+      "name": "Parser Strategie",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        780,
+        220
+      ],
+      "parameters": {
+        "jsonSchemaExample": "{\"produkte\":[{\"nr\":1,\"typ\":\"Checkliste\",\"titel\":\"Beispieltitel\",\"beschreibung_kurz\":\"Kurzbeschreibung\",\"inhalt_konzept\":\"Beschreibung der Seiten und Elemente\",\"quellen_auszug\":\"Konkrete Methoden und Begriffe aus dem Manuskript\",\"preis_eur\":4.99}]}"
+      }
+    },
+    {
+      "id": "e_mail1",
+      "name": "Freigabe-Mail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        900,
+        0
+      ],
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "you@example.com",
+        "subject": "=Etsy-Produkte zur Freigabe: {{ $('Buch-Daten').first().json.titel }}",
+        "message": "=🛒 NEUE ETSY-PRODUKTE ZUR FREIGABE 🛒\n\nBUCH: {{ $('Buch-Daten').first().json.titel }}\nAUTOR: {{ $('Buch-Daten').first().json.autor }}\n\n{{ $json.output.produkte.map(p => '━━━━━━━━━━━━━━━━━━━━\\nPRODUKT ' + p.nr + ': ' + p.titel + '\\nTyp: ' + p.typ + ' | Preis: ' + p.preis_eur + ' €\\n' + p.beschreibung_kurz + '\\n\\nINHALT: ' + p.inhalt_konzept + '\\n').join('\\n') }}\n\nWähle unten aus, welche Produkte produziert werden sollen.",
+        "responseType": "customForm",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "produkt_1",
+              "fieldType": "dropdown",
+              "defaultValue": "=Produkt 1: {{ ($json.output.produkte[0] || {}).titel || '(nicht vorhanden)' }}",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Produzieren ✅"
+                  },
+                  {
+                    "option": "Verwerfen ❌"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "produkt_2",
+              "fieldType": "dropdown",
+              "defaultValue": "=Produkt 2: {{ ($json.output.produkte[1] || {}).titel || '(nicht vorhanden)' }}",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Produzieren ✅"
+                  },
+                  {
+                    "option": "Verwerfen ❌"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "produkt_3",
+              "fieldType": "dropdown",
+              "defaultValue": "=Produkt 3: {{ ($json.output.produkte[2] || {}).titel || '(nicht vorhanden)' }}",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Produzieren ✅"
+                  },
+                  {
+                    "option": "Verwerfen ❌"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "produkt_4",
+              "fieldType": "dropdown",
+              "defaultValue": "=Produkt 4: {{ ($json.output.produkte[3] || {}).titel || '(nicht vorhanden)' }}",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Produzieren ✅"
+                  },
+                  {
+                    "option": "Verwerfen ❌"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "produkt_5",
+              "fieldType": "dropdown",
+              "defaultValue": "=Produkt 5: {{ ($json.output.produkte[4] || {}).titel || '(nicht vorhanden)' }}",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Produzieren ✅"
+                  },
+                  {
+                    "option": "Verwerfen ❌"
+                  }
+                ]
+              },
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "id": "e_filter",
+      "name": "Auswahl filtern",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const produkte = $('Produkt-Strategie-Agent').first().json.output.produkte || [];\nconst buch = $('Buch-Daten').first().json;\n\n// Etsy-Dateien landen im Unterordner \"Etsy\" des Buches (Spalte Etsy-Ordner-ID\n// im Buch-Master). Fallback auf den Buch-Hauptordner, falls die Spalte leer ist.\nconst zeile = $('Buch laden').first().json || {};\nconst etsyOrdner = String(zeile['Etsy-Ordner-ID'] || '').trim() || buch.ordner_id;\n\nconst antwort = $json.data || $json;\n// Seit 11.09.2026 ist die Freigabe-Mail deaktiviert (Entscheidung Betreiber): ohne Antwort werden alle\n// Produkte produziert. Kontrolle vor dem Veroeffentlichen (Morgen-Mail, Spalte \"Redaktionell geprueft am\").\n// Freigabe-Mail wieder aktivieren = Auswahl per Mail wie frueher.\nconst hatAuswahl = Object.keys(antwort || {}).some(k => /^produkt_\\d+$/.test(k));\nconst ausgewaehlt = [];\nprodukte.forEach((p, i) => {\n  const wahl = antwort['produkt_' + (i + 1)] || '';\n  if (!hatAuswahl || wahl.indexOf('Produzieren') === 0) {\n    ausgewaehlt.push({ json: Object.assign({}, p, {\n      buch_id: buch.buch_id,\n      buch_titel: buch.titel,\n      autor: buch.autor,\n      ordner_id: buch.ordner_id,\n      etsy_ordner_id: etsyOrdner\n    }) });\n  }\n});\nif (ausgewaehlt.length === 0) {\n  throw new Error('Keine Produkte ausgewählt – Workflow beendet.');\n}\nreturn ausgewaehlt;"
+      }
+    },
+    {
+      "id": "e_loop",
+      "name": "Loop Produkte",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        1340,
+        0
+      ],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "e_content",
+      "name": "Content-Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        1560,
+        120
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Erstelle den vollständigen Inhalt für ein digitales Etsy-Produkt als einzelnes HTML-Dokument.\n\nPRODUKT:\nTyp: {{ $json.typ }}\nTitel: {{ $json.titel }}\nKonzept: {{ $json.inhalt_konzept }}\nThematischer Kontext (Buch): {{ $json.buch_titel }}\n\nINHALTLICHE GRUNDLAGE AUS DEM BUCH (verbindlich verwenden):\n{{ $json.quellen_auszug }}\n\nANFORDERUNGEN:\n- Sprache: Deutsch\n- Nutze die Methoden, Begriffe und Schrittfolgen aus der inhaltlichen Grundlage. Erfinde keine konkurrierenden Systeme oder abweichenden Bezeichnungen.\n- Komplettes, druckfertiges HTML-Dokument (DIN A4) mit eingebettetem CSS im <style>-Block\n- @page { size: A4; margin: 18mm; }\n- Cleanes, modernes Design: EINE dezente Akzentfarbe, serifenlose Schrift (font-family: 'Helvetica Neue', Arial, sans-serif), viel Weißraum\n- Seite 1 = Deckblatt (Produkttitel groß, kurzer Nutzenversprechen-Satz), danach die Inhaltsseiten\n- Seitenumbrüche mit style=\"page-break-before: always\"\n- Je nach Typ: Checklisten mit ☐-Kästchen, Tabellen für Tracker/Tagebücher (mit leeren Zeilen zum Ausfüllen), Linien für Notizfelder (border-bottom)\n- Umfang: 3 bis 8 A4-Seiten, vollständig und sofort nutzbar\n- KEINE Platzhalter wie [hier einfügen] – alle Texte, Fragen und Listenpunkte vollständig ausformuliert\n- Kein Autorenname, kein Copyright-Hinweis im Dokument\n\nAntworte AUSSCHLIESSLICH mit dem HTML-Code, beginnend mit <!DOCTYPE html>. Kein Markdown, keine Code-Fences, keine Erklärungen.",
+        "options": {}
+      }
+    },
+    {
+      "id": "e_m2",
+      "name": "Anthropic Content",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        1560,
+        320
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-5",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {
+          "maxTokensToSample": 16000
+        }
+      },
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "id": "e_tofile",
+      "name": "HTML als Datei",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1780,
+        120
+      ],
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "html",
+        "options": {
+          "fileName": "index.html",
+          "mimeType": "text/html"
+        }
+      }
+    },
+    {
+      "id": "e_pdf",
+      "name": "Gotenberg PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2000,
+        120
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://gotenberg:3000/forms/chromium/convert/html",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "data"
+            }
+          }
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "e_drive",
+      "name": "PDF ablegen",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2220,
+        120
+      ],
+      "parameters": {
+        "name": "=Etsy_{{ $('Loop Produkte').first().json.nr }}_{{ $('Loop Produkte').first().json.titel.replace(/[^a-zA-Z0-9äöüÄÖÜß\\- ]/g, '').substring(0, 60) }}.pdf",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive",
+          "cachedResultName": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $('Loop Produkte').first().json.etsy_ordner_id }}",
+          "mode": "id",
+          "cachedResultName": "Etsy-Ordner (dynamisch)"
+        },
+        "inputDataFieldName": "data",
+        "options": {},
+        "operation": "upload"
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "e_seo",
+      "name": "SEO-Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.1,
+      "position": [
+        2440,
+        120
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "=Du bist Etsy-SEO-Experte für den deutschsprachigen Markt. Etsys Suche und die KI-Produktsuche (Etsy-App in ChatGPT) bewerten 2026 Titel, Beschreibung, Attribute und die daraus extrahierten Entitäten – nicht Keyword-Dichte.\n\nPRODUKT:\nTyp: {{ $('Loop Produkte').first().json.typ }}\nTitel: {{ $('Loop Produkte').first().json.titel }}\nInhalt: {{ $('Loop Produkte').first().json.inhalt_konzept }}\nPreisvorschlag: {{ $('Loop Produkte').first().json.preis_eur }} EUR\n\nERSTELLE:\n1. etsy_titel: max. 140 Zeichen, Deutsch, wichtigste Suchbegriffe vorne, natürlich lesbar, enthält 'PDF' und 'Sofort Download' oder 'Digitaler Download'\n2. tags: GENAU 13 Tags, je max. 20 Zeichen, Deutsch, Mischung aus konkreten Suchbegriffen und thematischen Begriffen, keine Duplikate aus einzelnen Titelwörtern\n3. beschreibung: 150-250 Wörter. DER ERSTE SATZ MUSS die Käufer-Persona und den konkreten Nutzungsmoment benennen – also wer das Produkt in welcher Situation benutzt (Beispiel für die Machart: 'Für Eltern, die abends um 19 Uhr am Küchentisch sitzen und nicht wissen, wie sie das Handy-Thema ansprechen sollen.'). Kein generisches Qualitätsversprechen, keine Floskel. Danach: Aufzählung was enthalten ist (mit ➤ als Aufzählungszeichen), dann Abschnitt 'SO FUNKTIONIERT ES:' (Sofort-Download nach Kauf, PDF im DIN-A4-Format, zuhause ausdrucken oder digital am Tablet nutzen), dann Hinweis dass es ein digitales Produkt ist und kein physischer Artikel versendet wird. Konkrete Details gewinnen (Seitenzahl, Anzahl der Elemente).\n4. materials: 4-6 Begriffe, je max. 45 Zeichen, NUR Buchstaben, Zahlen und Leerzeichen (keine Bindestriche, keine Sonderzeichen). Sie beschreiben, was das Produkt ist und woraus es besteht. Beispiele: 'PDF Datei', 'Digitaler Download', 'Druckvorlage', 'DIN A4', 'Sofort Download'\n5. alt_text: max. 200 Zeichen, beschreibt das Produktbild sachlich – Produkttyp, Thema, Format. Wird von Screenreadern und von der KI-Bildauswertung gelesen.\n6. preis_eur: finaler Preis zwischen 2.99 und 7.99\n\nAntworte NUR mit validem JSON ohne Markdown:\n{\"etsy_titel\":\"...\",\"tags\":[\"...\"],\"beschreibung\":\"...\",\"materials\":[\"...\"],\"alt_text\":\"...\",\"preis_eur\":4.99}",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "e_m3",
+      "name": "Anthropic SEO",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        2380,
+        320
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-5",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 5"
+        },
+        "options": {
+          "maxTokensToSample": 8000
+        }
+      },
+      "credentials": {
+        "anthropicApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "Anthropic account"
+        }
+      }
+    },
+    {
+      "id": "e_p2",
+      "name": "Parser SEO",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        2560,
+        320
+      ],
+      "parameters": {
+        "jsonSchemaExample": "{\"etsy_titel\":\"Beispieltitel PDF Sofort Download\",\"tags\":[\"tag1\",\"tag2\"],\"beschreibung\":\"Beispielbeschreibung\",\"materials\":[\"PDF Datei\",\"Druckvorlage\"],\"alt_text\":\"Beispiel Bildbeschreibung\",\"preis_eur\":4.99}"
+      }
+    },
+    {
+      "id": "e_sheet",
+      "name": "Etsy-Sheet Eintrag",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        4300,
+        120
+      ],
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_FILE_ID",
+          "mode": "list",
+          "cachedResultName": "Buch-Master"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Etsy-Produkte",
+          "mode": "name",
+          "cachedResultName": "Etsy-Produkte"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Buch-ID": "={{ $('Loop Produkte').first().json.buch_id }}",
+            "Produkt-Nr": "={{ $('Loop Produkte').first().json.nr }}",
+            "Produkt-Typ": "={{ $('Loop Produkte').first().json.typ }}",
+            "Produkt-Titel": "={{ $('Loop Produkte').first().json.titel }}",
+            "Etsy-Titel": "={{ $('SEO-Agent').first().json.output.etsy_titel }}",
+            "Tags": "={{ $('SEO-Agent').first().json.output.tags.join(', ') }}",
+            "Beschreibung": "={{ $('SEO-Agent').first().json.output.beschreibung }}",
+            "Preis (EUR)": "={{ $('Listing-Daten bauen').first().json.preis }}",
+            "PDF-Drive-ID": "={{ $('PDF ablegen').first().json.id }}",
+            "Mockup-Status": "={{ $('Mockup ablegen').isExecuted && $('Mockup ablegen').first().json.id ? 'automatisch erzeugt und abgelegt' : 'automatisch erzeugt' }}",
+            "Etsy-Listing-ID": "={{ $('Draft-Listing anlegen').first().json.listing_id }}",
+            "Etsy-Status": "Entwurf angelegt",
+            "KI-generiert am": "={{ $now.format('yyyy-MM-dd') }}",
+            "Redaktionell geprüft am": "",
+            "Mockup-Drive-ID": "={{ $('Mockup ablegen').isExecuted ? ($('Mockup ablegen').first().json.id || '') : '' }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Buch-ID",
+              "id": "Buch-ID",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Produkt-Nr",
+              "id": "Produkt-Nr",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Produkt-Typ",
+              "id": "Produkt-Typ",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Produkt-Titel",
+              "id": "Produkt-Titel",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Etsy-Titel",
+              "id": "Etsy-Titel",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Tags",
+              "id": "Tags",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Beschreibung",
+              "id": "Beschreibung",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Preis (EUR)",
+              "id": "Preis (EUR)",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "PDF-Drive-ID",
+              "id": "PDF-Drive-ID",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Mockup-Status",
+              "id": "Mockup-Status",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Etsy-Listing-ID",
+              "id": "Etsy-Listing-ID",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Etsy-Status",
+              "id": "Etsy-Status",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "KI-generiert am",
+              "id": "KI-generiert am",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Redaktionell geprüft am",
+              "id": "Redaktionell geprüft am",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            },
+            {
+              "canBeUsedToMatch": true,
+              "defaultMatch": false,
+              "display": true,
+              "displayName": "Mockup-Drive-ID",
+              "id": "Mockup-Drive-ID",
+              "removed": false,
+              "required": false,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "e_mail2",
+      "name": "Abschluss-Mail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1560,
+        -160
+      ],
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "you@example.com",
+        "subject": "=✅ Etsy-Produkte fertig: {{ $('Buch-Daten').first().json.titel }}",
+        "message": "=Alle freigegebenen Etsy-Produkte sind produziert und als Entwürfe in deinem Etsy-Shop angelegt.\n\nBUCH: {{ $('Buch-Daten').first().json.titel }}\nPRODUKTE: {{ $('Auswahl filtern').all().length }}\n\n📁 PDFs und Mockups:\nhttps://drive.google.com/drive/folders/{{ $('Auswahl filtern').first().json.etsy_ordner_id }}\n\n📊 Übersicht im Blatt 'Etsy-Produkte':\nhttps://docs.google.com/spreadsheets/d/GOOGLE_FILE_ID/edit#gid=0\n\nNÄCHSTE SCHRITTE:\n1. PDFs prüfen (Urheberschaft-Log Block 5)\n2. Im Blatt die Spalte 'Redaktionell geprüft am' ausfüllen\n3. Entwürfe im Etsy Shop Manager veröffentlichen (Etsy berechnet 0,20 $ pro Listing)",
+        "options": {}
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      },
+      "executeOnce": true,
+      "disabled": true
+    },
+    {
+      "id": "e_tok",
+      "name": "Etsy Zugang",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        2900,
+        120
+      ],
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "ETSY_TOKEN_SUB_ID",
+          "mode": "id",
+          "cachedResultName": "Etsy Token holen (Sub)"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e_ldata",
+      "name": "Listing-Daten bauen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3100,
+        120
+      ],
+      "parameters": {
+        "jsCode": "// ===== PREIS ZENTRAL =====\n// PREIS_PHASE umstellen, sobald die ersten Verkaeufe / Reviews da sind:\n//   'start'     = Einstiegspreise (Shop ohne Verkaeufe und ohne Reviews)\n//   'etabliert' = regulaere Preise\n// Gilt fuer das Etsy-Listing UND fuer den Eintrag im Blatt \"Etsy-Produkte\".\n// Format immer mit Punkt als Trenner.\nconst PREIS_PHASE = 'start';\n\nconst STAFFEL = {\n  start:     { checkliste: '1.90', vorlage: '2.90', workbook: '4.90', bundle: '7.90',  fallback: '2.90' },\n  etabliert: { checkliste: '2.90', vorlage: '4.90', workbook: '7.90', bundle: '12.90', fallback: '4.90' }\n};\n\nconst z = $input.first().json;\nconst seo = $('SEO-Agent').first().json.output || {};\nconst p = $('Loop Produkte').first().json || {};\nconst pdf = $('PDF ablegen').first().json || {};\n\nif (!z.shop_id) throw new Error('Keine shop_id vom Token-Workflow erhalten.');\n\nconst typ = String(p.typ || '').toLowerCase();\nconst hat = function () {\n  const w = Array.prototype.slice.call(arguments);\n  return w.some(function (x) { return typ.indexOf(x) !== -1; });\n};\n\n// --- Preis-Kategorie aus dem Produkttyp (Reihenfolge ist wichtig) ---\nlet kategorie = 'fallback';\nif (hat('bundle', 'paket', 'komplett', 'sammlung')) kategorie = 'bundle';\nelse if (hat('workbook', 'arbeitsheft', 'arbeitsbuch', 'journal', 'tagebuch', 'kurs', 'leitfaden', 'guide', 'ratgeber')) kategorie = 'workbook';\nelse if (hat('vorlage', 'planer', 'kalender', 'tracker', 'template', 'arbeitsblatt', 'worksheet', 'protokoll', 'kartenset', 'set', 'system')) kategorie = 'vorlage';\nelse if (hat('checkliste', 'spickzettel', 'cheat', 'uebersicht', 'übersicht')) kategorie = 'checkliste';\n\nconst tabelle = STAFFEL[PREIS_PHASE] || STAFFEL.start;\nconst PREIS_EUR = tabelle[kategorie] || tabelle.fallback;\n\n// --- Taxonomie (unveraendert) ---\nlet taxonomy = 1305;\nif (typ.indexOf('planer') !== -1 || typ.indexOf('kalender') !== -1) taxonomy = 12476;\nelse if (typ.indexOf('journal') !== -1 || typ.indexOf('tagebuch') !== -1) taxonomy = 12475;\nelse if (typ.indexOf('checkliste') !== -1 || typ.indexOf('arbeitsblatt') !== -1 || typ.indexOf('worksheet') !== -1 || typ.indexOf('vorlage') !== -1) taxonomy = 12471;\nelse if (typ.indexOf('leitfaden') !== -1 || typ.indexOf('guide') !== -1 || typ.indexOf('lern') !== -1 || typ.indexOf('ratgeber') !== -1) taxonomy = 12474;\n\n// Etsy erlaubt in Tags Buchstaben, Zahlen, Leerzeichen und Bindestriche\nconst tags = (seo.tags || [])\n  .map(t => String(t).replace(/[^0-9a-zA-ZäöüÄÖÜß \\-]/g, '').trim().slice(0, 20))\n  .filter(t => t.length > 0)\n  .slice(0, 13);\n\n// Etsy erlaubt in Materials NUR Buchstaben, Zahlen und Leerzeichen\nconst standard = ['PDF Datei', 'Digitaler Download', 'Druckvorlage', 'DIN A4'];\nconst roh = (Array.isArray(seo.materials) && seo.materials.length) ? seo.materials : standard;\nconst materials = roh\n  .map(m => String(m).replace(/[^0-9a-zA-ZäöüÄÖÜß ]/g, ' ').replace(/\\s+/g, ' ').trim().slice(0, 45))\n  .filter(m => m.length > 0)\n  .slice(0, 13);\n\nconst titel = String(seo.etsy_titel || p.titel || 'Digitales Produkt').slice(0, 140);\nconst beschreibung = String(seo.beschreibung || '');\nif (!beschreibung) throw new Error('SEO-Agent hat keine Beschreibung geliefert.');\n\nconst altText = String(seo.alt_text || (titel + ' - digitale PDF-Vorlage zum Ausdrucken')).slice(0, 250);\nconst basis = (String(p.titel || 'Produkt').replace(/[^0-9a-zA-Z]/g, '_').slice(0, 40) || 'Produkt');\n\nreturn [{ json: {\n  preis: PREIS_EUR,\n  preis_kategorie: kategorie,\n  preis_phase: PREIS_PHASE,\n  api_key: z.api_key,\n  access_token: z.access_token,\n  shop_id: z.shop_id,\n  taxonomy_id: taxonomy,\n  titel: titel,\n  beschreibung: beschreibung,\n  tags: tags.join(','),\n  materials: materials.join(','),\n  alt_text: altText,\n  bilddatei: basis + '_mockup.jpg',\n  pdf_id: String(pdf.id || ''),\n  dateiname: String(pdf.name || 'Produkt.pdf')\n}}];"
+      }
+    },
+    {
+      "id": "e_draft",
+      "name": "Draft-Listing anlegen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3300,
+        120
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.etsy.com/v3/application/shops/{{ $json.shop_id }}/listings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $json.api_key }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "specifyBody": "keypair",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "quantity",
+              "value": "999"
+            },
+            {
+              "name": "title",
+              "value": "={{ $json.titel }}"
+            },
+            {
+              "name": "description",
+              "value": "={{ $json.beschreibung }}"
+            },
+            {
+              "name": "price",
+              "value": "={{ $json.preis }}"
+            },
+            {
+              "name": "who_made",
+              "value": "i_did"
+            },
+            {
+              "name": "when_made",
+              "value": "made_to_order"
+            },
+            {
+              "name": "taxonomy_id",
+              "value": "={{ $json.taxonomy_id }}"
+            },
+            {
+              "name": "type",
+              "value": "download"
+            },
+            {
+              "name": "tags",
+              "value": "={{ $json.tags }}"
+            },
+            {
+              "name": "materials",
+              "value": "={{ $json.materials }}"
+            },
+            {
+              "name": "is_supply",
+              "value": "false"
+            },
+            {
+              "name": "is_personalizable",
+              "value": "false"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "e_pdfdl",
+      "name": "PDF laden",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3500,
+        120
+      ],
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $('Listing-Daten bauen').first().json.pdf_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "e_pdfup",
+      "name": "PDF anhaengen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3700,
+        120
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.etsy.com/v3/application/shops/{{ $('Listing-Daten bauen').first().json.shop_id }}/listings/{{ $('Draft-Listing anlegen').first().json.listing_id }}/files",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $('Listing-Daten bauen').first().json.api_key }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Listing-Daten bauen').first().json.access_token }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "inputDataFieldName": "data",
+              "name": "file",
+              "parameterType": "formBinaryData"
+            },
+            {
+              "name": "name",
+              "parameterType": "formData",
+              "value": "={{ (String($('Listing-Daten bauen').first().json.dateiname || 'Produkt').replace(/\\.pdf$/i, '').replace(/ä/g, 'ae').replace(/ö/g, 'oe').replace(/ü/g, 'ue').replace(/Ä/g, 'Ae').replace(/Ö/g, 'Oe').replace(/Ü/g, 'Ue').replace(/ß/g, 'ss').replace(/[^A-Za-z0-9_-]+/g, '_').replace(/_+/g, '_').replace(/^_+|_+$/g, '').slice(0, 60) || 'Produkt') + '.pdf' }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "e_msuch",
+      "name": "Manuskript suchen",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        560,
+        -180
+      ],
+      "parameters": {
+        "resource": "fileFolder",
+        "searchMethod": "query",
+        "queryString": "=((mimeType = 'application/pdf' and name contains 'Print_' and not name contains 'Cover') or (mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' and name contains 'PRINT_TEXT_')) and '{{ $json.ordner_id }}' in parents and trashed = false",
+        "limit": 10,
+        "filter": {},
+        "options": {}
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "e_mload",
+      "name": "Manuskript laden",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        700,
+        -180
+      ],
+      "parameters": {
+        "operation": "download",
+        "fileId": {
+          "__rl": true,
+          "value": "={{ $json.id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "id": "e_mtext",
+      "name": "Manuskript-Text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        840,
+        -180
+      ],
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "data",
+        "options": {}
+      }
+    },
+    {
+      "id": "9ed1c785-cae7-437a-b5e7-61885c1466d2",
+      "name": "HTML säubern",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1670,
+        280
+      ],
+      "parameters": {
+        "jsCode": "let h = String($json.output || '').trim();\nh = h.replace(/^```(?:html)?\\s*/i, '').replace(/```\\s*$/, '').trim();\nconst i = h.toLowerCase().indexOf('<!doctype');\nif (i > 0) { h = h.slice(i); }\nif (!h) { throw new Error('Content-Agent hat kein HTML geliefert.'); }\nreturn [{ json: { html: h } }];"
+      }
+    },
+    {
+      "id": "61f2eecf-f79e-4801-91ba-8793d05315fd",
+      "name": "Mockup-HTML bauen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3380,
+        320
+      ],
+      "parameters": {
+        "jsCode": "const inhalt = String($('HTML säubern').first().json.html || '');\nconst p = $('Loop Produkte').first().json || {};\nconst seo = $('SEO-Agent').first().json.output || {};\n\nconst esc = (s) => String(s)\n  .replace(/&/g, '&amp;')\n  .replace(/</g, '&lt;')\n  .replace(/>/g, '&gt;')\n  .replace(/\"/g, '&quot;');\n\nconst titel = String(p.titel || seo.etsy_titel || 'Digitales Produkt');\nconst typ = String(p.typ || 'PDF');\n\nconst html = '<!DOCTYPE html><html><head><meta charset=\"utf-8\"><style>'\n  + '@page { size: 2000px 2000px; margin: 0; }'\n  + '* { box-sizing: border-box; }'\n  + 'html, body { margin:0; padding:0; width:2000px; height:2000px; }'\n  + 'body { background: linear-gradient(160deg,#f8f5f0 0%,#e9e1d5 100%); font-family: Helvetica Neue, Helvetica, Arial, sans-serif; color:#2b2b2b; display:flex; flex-direction:column; align-items:center; justify-content:space-between; padding:110px 110px 90px 110px; }'\n  + '.kicker { font-size:42px; letter-spacing:12px; text-transform:uppercase; color:#8a7f70; font-weight:600; }'\n  + 'h1 { font-size:92px; line-height:1.08; text-align:center; margin:34px 0 0 0; font-weight:700; max-width:1620px; }'\n  + '.stage { position:relative; width:1100px; height:1000px; display:flex; align-items:center; justify-content:center; }'\n  + '.sheet { position:absolute; width:760px; height:1075px; background:#fff; overflow:hidden; box-shadow:0 45px 85px rgba(0,0,0,.20); border-radius:6px; }'\n  + '.back1 { transform: rotate(-6deg) translate(-95px,26px) scale(.93); opacity:.7; }'\n  + '.back2 { transform: rotate(5deg) translate(95px,18px) scale(.95); opacity:.82; }'\n  + '.sheet iframe { width:794px; height:1123px; border:0; transform:scale(.957); transform-origin:top left; }'\n  + '.badge { font-size:38px; font-weight:600; letter-spacing:3px; background:#2b2b2b; color:#fff; padding:26px 56px; border-radius:999px; }'\n  + '</style></head><body>'\n  + '<div style=\"display:flex;flex-direction:column;align-items:center\">'\n  + '<div class=\"kicker\">' + esc(typ) + '</div>'\n  + '<h1>' + esc(titel) + '</h1></div>'\n  + '<div class=\"stage\">'\n  + '<div class=\"sheet back1\"></div>'\n  + '<div class=\"sheet back2\"></div>'\n  + '<div class=\"sheet\"><iframe srcdoc=\"' + esc(inhalt) + '\" scrolling=\"no\"></iframe></div>'\n  + '</div>'\n  + '<div class=\"badge\">PDF &middot; DIN A4 &middot; SOFORT-DOWNLOAD</div>'\n  + '</body></html>';\n\nreturn [{ json: { mockup_html: html } }];"
+      }
+    },
+    {
+      "id": "ba6b821a-d4c1-4422-bce1-bf4943a549c0",
+      "name": "Mockup als Datei",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        3520,
+        320
+      ],
+      "parameters": {
+        "operation": "toText",
+        "options": {
+          "fileName": "index.html",
+          "mimeType": "text/html"
+        },
+        "sourceProperty": "mockup_html"
+      }
+    },
+    {
+      "id": "f9258e21-59d4-41f4-99cd-a625b2b0eafa",
+      "name": "Mockup-Bild rendern",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3660,
+        320
+      ],
+      "parameters": {
+        "bodyParameters": {
+          "parameters": [
+            {
+              "inputDataFieldName": "data",
+              "name": "files",
+              "parameterType": "formBinaryData"
+            },
+            {
+              "name": "format",
+              "value": "jpeg"
+            },
+            {
+              "name": "quality",
+              "value": "85"
+            },
+            {
+              "name": "width",
+              "value": "2000"
+            },
+            {
+              "name": "height",
+              "value": "2000"
+            },
+            {
+              "name": "clip",
+              "value": "true"
+            },
+            {
+              "name": "waitDelay",
+              "value": "1s"
+            }
+          ]
+        },
+        "contentType": "multipart-form-data",
+        "method": "POST",
+        "options": {
+          "response": {
+            "response": {
+              "outputPropertyName": "data",
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "url": "http://gotenberg:3000/forms/chromium/screenshot/html"
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "e80d593b-f419-412d-b44d-6ad0e640cc18",
+      "name": "Bild anhaengen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3800,
+        320
+      ],
+      "parameters": {
+        "bodyParameters": {
+          "parameters": [
+            {
+              "inputDataFieldName": "data",
+              "name": "image",
+              "parameterType": "formBinaryData"
+            },
+            {
+              "name": "name",
+              "value": "={{ $('Listing-Daten bauen').first().json.bilddatei }}"
+            },
+            {
+              "name": "rank",
+              "value": "1"
+            },
+            {
+              "name": "alt_text",
+              "value": "={{ $('Listing-Daten bauen').first().json.alt_text }}"
+            }
+          ]
+        },
+        "contentType": "multipart-form-data",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $('Listing-Daten bauen').first().json.api_key }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Listing-Daten bauen').first().json.access_token }}"
+            }
+          ]
+        },
+        "method": "POST",
+        "options": {
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "sendHeaders": true,
+        "url": "=https://api.etsy.com/v3/application/shops/{{ $('Listing-Daten bauen').first().json.shop_id }}/listings/{{ $('Draft-Listing anlegen').first().json.listing_id }}/images"
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "6ad4cf45-88f2-4e6b-a9f9-ed66b40b8f0b",
+      "name": "Listing veröffentlichen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        4100,
+        120
+      ],
+      "parameters": {
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "state",
+              "value": "active"
+            }
+          ]
+        },
+        "contentType": "form-urlencoded",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $('Listing-Daten bauen').first().json.api_key }}"
+            },
+            {
+              "name": "Authorization",
+              "value": "=Bearer {{ $('Listing-Daten bauen').first().json.access_token }}"
+            }
+          ]
+        },
+        "method": "PATCH",
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "sendHeaders": true,
+        "specifyBody": "keypair",
+        "url": "=https://api.etsy.com/v3/application/shops/{{ $('Listing-Daten bauen').first().json.shop_id }}/listings/{{ $('Draft-Listing anlegen').first().json.listing_id }}"
+      },
+      "disabled": true,
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "e_mockdrive",
+      "name": "Mockup ablegen",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3800,
+        200
+      ],
+      "parameters": {
+        "driveId": {
+          "__rl": true,
+          "cachedResultName": "My Drive",
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "cachedResultName": "Etsy-Ordner (dynamisch)",
+          "mode": "id",
+          "value": "={{ $('Loop Produkte').first().json.etsy_ordner_id }}"
+        },
+        "inputDataFieldName": "data",
+        "name": "=Etsy_Mockup_{{ $('Loop Produkte').first().json.nr }}_{{ String($('Loop Produkte').first().json.titel || 'Produkt').replace(/[^a-zA-Z0-9äöüÄÖÜß\\- ]/g, '').substring(0, 50) }}_{{ $now.format('yyyyMMdd-HHmmss') }}.jpg",
+        "operation": "upload",
+        "options": {}
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Drive account"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "alwaysOutputData": true
+    },
+    {
+      "id": "tl_start",
+      "name": "Testlauf-Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        -220
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "a_buecher",
+      "name": "Auswahl: Buecher",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        0,
+        -420
+      ],
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "GOOGLE_FILE_ID"
+        },
+        "options": {},
+        "sheetName": {
+          "__rl": true,
+          "mode": "id",
+          "value": 0
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "executeOnce": true
+    },
+    {
+      "id": "a_etsy",
+      "name": "Auswahl: Etsy-Bestand",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        220,
+        -420
+      ],
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "GOOGLE_FILE_ID"
+        },
+        "options": {},
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Etsy-Produkte"
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "executeOnce": true
+    },
+    {
+      "id": "a_best",
+      "name": "Buch bestimmen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        -420
+      ],
+      "parameters": {
+        "jsCode": "// Bestimmt, fuer welches Buch Etsy-Produkte erzeugt werden.\n// 1) Buch-ID vorgegeben (Formular, WF04 nach der Freigabe, Testlauf-Starter): genau dieses Buch.\n// 2) Keine Buch-ID: automatisch das erste Buch im Buch-Master, das eine Buch-ID und einen\n//    Buchordner hat, aber noch keine einzige Zeile im Blatt \"Etsy-Produkte\".\nfunction startDaten() {\n  try { return $('Etsy-Fabrik Start').first().json || {}; } catch (e) {}\n  try { return $('Testlauf-Start').first().json || {}; } catch (e) {}\n  return {};\n}\nconst gewuenscht = String(startDaten().buch_id || '').trim();\nconst buecher = $('Auswahl: Buecher').all().map(i => i.json || {}).filter(b => String(b.Buchtitel || '').trim());\nconst id = b => String(b['Buch-ID'] == null ? '' : b['Buch-ID']).trim();\n\nif (gewuenscht) {\n  const b = buecher.find(x => id(x) === gewuenscht);\n  if (!b) throw new Error('Buch-ID \"' + gewuenscht + '\" steht nicht im Buch-Master.');\n  // Automatischer Start aus WF03 (auch bei einem WF03-Neulauf): hat das Buch schon Etsy-Produkte,\n  // passiert nichts, damit keine doppelten Entwuerfe entstehen. Manuell (Formular/Starter) geht es trotzdem.\n  const schonDa = $('Auswahl: Etsy-Bestand').all().some(i => id(i.json || {}) === gewuenscht);\n  if (schonDa && String(startDaten().quelle || '').indexOf('WF03') === 0) {\n    return [];\n  }\n  return [{ json: { buch_id: gewuenscht, auswahl: 'vorgegeben', titel: b.Buchtitel } }];\n}\n\nconst mitEtsy = new Set($('Auswahl: Etsy-Bestand').all().map(i => id(i.json || {})).filter(Boolean));\nconst ohneId = buecher.filter(b => !id(b)).map(b => b.Buchtitel);\nconst offen = buecher.filter(b => id(b) && String(b['Ordner-ID'] || '').trim() && !mitEtsy.has(id(b)));\n\nif (offen.length === 0) {\n  if (ohneId.length) {\n    throw new Error('Kein Buch automatisch waehlbar. Ohne Buch-ID im Buch-Master (Spalte K): ' + ohneId.join(', '));\n  }\n  return []; // alle Buecher haben schon Etsy-Produkte, nichts zu tun\n}\nconst b = offen[0];\nreturn [{ json: { buch_id: id(b), auswahl: 'automatisch', titel: b.Buchtitel, offen_gesamt: offen.length, ohne_buch_id: ohneId } }];\n"
+      }
+    },
+    {
+      "id": "p_check",
+      "name": "Produkte pruefen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        780,
+        -100
+      ],
+      "parameters": {
+        "jsCode": "// Bricht sauber ab, wenn der Strategie-Agent keine Produktliste geliefert hat\n// (z. B. abgeschnittene Antwort). Sonst ginge eine leere Freigabe-Mail raus.\nconst j = $input.first().json || {};\nconst produkte = (j.output && Array.isArray(j.output.produkte)) ? j.output.produkte : [];\nif (produkte.length === 0) {\n  throw new Error('Produkt-Strategie-Agent hat keine Produkte geliefert. Rohdaten: ' + JSON.stringify(j).slice(0, 500));\n}\nreturn $input.all();"
+      }
+    },
+    {
+      "id": "m_wahl",
+      "name": "Manuskript waehlen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        630,
+        -320
+      ],
+      "parameters": {
+        "jsCode": "// Bevorzugt das fertige Print-PDF (Bestandsbuecher). Neue Buecher aus WF02 haben nur\n// die DOCX-Datei PRINT_TEXT_..., die wird danach per Gotenberg in ein PDF umgewandelt.\nconst files = $input.all().map(i => i.json || {}).filter(f => f.id);\nconst pdf = files.find(f => /\\.pdf$/i.test(String(f.name || '')));\nconst docx = files.find(f => /\\.docx$/i.test(String(f.name || '')));\nconst f = pdf || docx;\nif (!f) {\n  throw new Error('Kein Manuskript im Buchordner gefunden (erwartet Print_*.pdf oder PRINT_TEXT_*.docx aus WF02).');\n}\nreturn [{ json: { id: f.id, name: f.name, typ: pdf ? 'pdf' : 'docx' } }];"
+      }
+    },
+    {
+      "id": "m_isdocx",
+      "name": "Manuskript DOCX?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        770,
+        -320
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "m_isdocx_c1",
+              "leftValue": "={{ $('Manuskript waehlen').first().json.typ }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "docx"
+            }
+          ],
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          }
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "m_docx2pdf",
+      "name": "DOCX zu PDF",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        800,
+        -440
+      ],
+      "parameters": {
+        "bodyParameters": {
+          "parameters": [
+            {
+              "inputDataFieldName": "data",
+              "name": "files",
+              "parameterType": "formBinaryData"
+            }
+          ]
+        },
+        "contentType": "multipart-form-data",
+        "method": "POST",
+        "options": {
+          "response": {
+            "response": {
+              "outputPropertyName": "data",
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 120000
+        },
+        "sendBody": true,
+        "url": "http://gotenberg:3000/forms/libreoffice/convert"
+      },
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "Buch laden": {
+      "main": [
+        [
+          {
+            "node": "Buch-Daten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Strategie": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Produkt-Strategie-Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser Strategie": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Produkt-Strategie-Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Freigabe-Mail": {
+      "main": [
+        [
+          {
+            "node": "Auswahl filtern",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auswahl filtern": {
+      "main": [
+        [
+          {
+            "node": "Loop Produkte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Produkte": {
+      "main": [
+        [
+          {
+            "node": "Abschluss-Mail",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Content-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic Content": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Content-Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML als Datei": {
+      "main": [
+        [
+          {
+            "node": "Gotenberg PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gotenberg PDF": {
+      "main": [
+        [
+          {
+            "node": "PDF ablegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF ablegen": {
+      "main": [
+        [
+          {
+            "node": "SEO-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Anthropic SEO": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "SEO-Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parser SEO": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "SEO-Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Etsy-Sheet Eintrag": {
+      "main": [
+        [
+          {
+            "node": "Loop Produkte",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SEO-Agent": {
+      "main": [
+        [
+          {
+            "node": "Etsy Zugang",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Etsy Zugang": {
+      "main": [
+        [
+          {
+            "node": "Listing-Daten bauen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listing-Daten bauen": {
+      "main": [
+        [
+          {
+            "node": "Draft-Listing anlegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF laden": {
+      "main": [
+        [
+          {
+            "node": "PDF anhaengen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buch-Daten": {
+      "main": [
+        [
+          {
+            "node": "Manuskript suchen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manuskript-Text": {
+      "main": [
+        [
+          {
+            "node": "Produkt-Strategie-Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Content-Agent": {
+      "main": [
+        [
+          {
+            "node": "HTML säubern",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML säubern": {
+      "main": [
+        [
+          {
+            "node": "HTML als Datei",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Draft-Listing anlegen": {
+      "main": [
+        [
+          {
+            "node": "Mockup-HTML bauen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mockup-HTML bauen": {
+      "main": [
+        [
+          {
+            "node": "Mockup als Datei",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mockup als Datei": {
+      "main": [
+        [
+          {
+            "node": "Mockup-Bild rendern",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mockup-Bild rendern": {
+      "main": [
+        [
+          {
+            "node": "Bild anhaengen",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Mockup ablegen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Bild anhaengen": {
+      "main": [
+        [
+          {
+            "node": "PDF laden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PDF anhaengen": {
+      "main": [
+        [
+          {
+            "node": "Listing veröffentlichen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listing veröffentlichen": {
+      "main": [
+        [
+          {
+            "node": "Etsy-Sheet Eintrag",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Etsy-Fabrik Start": {
+      "main": [
+        [
+          {
+            "node": "Auswahl: Buecher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Testlauf-Start": {
+      "main": [
+        [
+          {
+            "node": "Auswahl: Buecher",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auswahl: Buecher": {
+      "main": [
+        [
+          {
+            "node": "Auswahl: Etsy-Bestand",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auswahl: Etsy-Bestand": {
+      "main": [
+        [
+          {
+            "node": "Buch bestimmen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buch bestimmen": {
+      "main": [
+        [
+          {
+            "node": "Buch laden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Produkt-Strategie-Agent": {
+      "main": [
+        [
+          {
+            "node": "Produkte pruefen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Produkte pruefen": {
+      "main": [
+        [
+          {
+            "node": "Freigabe-Mail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manuskript suchen": {
+      "main": [
+        [
+          {
+            "node": "Manuskript waehlen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manuskript waehlen": {
+      "main": [
+        [
+          {
+            "node": "Manuskript laden",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manuskript laden": {
+      "main": [
+        [
+          {
+            "node": "Manuskript DOCX?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manuskript DOCX?": {
+      "main": [
+        [
+          {
+            "node": "DOCX zu PDF",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Manuskript-Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DOCX zu PDF": {
+      "main": [
+        [
+          {
+            "node": "Manuskript-Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "ERROR_WORKFLOW_ID",
+    "timezone": "Europe/Berlin"
+  }
+}

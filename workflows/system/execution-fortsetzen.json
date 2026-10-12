@@ -1,0 +1,93 @@
+{
+  "name": "00 System – Execution fortsetzen (Retry)",
+  "nodes": [
+    {
+      "id": "r_hook",
+      "name": "Retry-Aufruf",
+      "parameters": {
+        "httpMethod": "POST",
+        "options": {},
+        "path": "execution-retry",
+        "responseMode": "onReceived"
+      },
+      "position": [
+        0,
+        0
+      ],
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2
+    },
+    {
+      "id": "r_check",
+      "name": "Token und ID pruefen",
+      "parameters": {
+        "jsCode": "// Nur mit Token nutzbar. Setzt eine abgebrochene Execution am Fehler-Node fort,\n// mit der aktuell gespeicherten Workflow-Version (loadWorkflow: true).\nconst j = $input.first().json || {};\nconst q = Object.assign({}, j.query || {}, j.body || {});\nif (String(q.t || '') !== 'CHANGE_ME_RETRY_TOKEN') {\n  throw new Error('Kein gueltiger Token.');\n}\nconst id = String(q.id || '').trim();\nif (!/^\\d+$/.test(id)) {\n  throw new Error('Parameter id fehlt oder ist keine Execution-ID.');\n}\nreturn [{ json: { execution_id: id } }];"
+      },
+      "position": [
+        220,
+        0
+      ],
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2
+    },
+    {
+      "id": "r_http",
+      "name": "Execution fortsetzen",
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "jsonBody": "{\"loadWorkflow\": true}",
+        "method": "POST",
+        "nodeCredentialType": "n8nApi",
+        "options": {
+          "timeout": 10800000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "url": "=https://your-n8n.example.com/api/v1/executions/{{ $json.execution_id }}/retry"
+      },
+      "position": [
+        440,
+        0
+      ],
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "credentials": {
+        "n8nApi": {
+          "id": "CREDENTIAL_ID",
+          "name": "n8n API (Retry)"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Retry-Aufruf": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Token und ID pruefen",
+            "type": "main"
+          }
+        ]
+      ]
+    },
+    "Token und ID pruefen": {
+      "main": [
+        [
+          {
+            "index": 0,
+            "node": "Execution fortsetzen",
+            "type": "main"
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Berlin",
+    "errorWorkflow": "",
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

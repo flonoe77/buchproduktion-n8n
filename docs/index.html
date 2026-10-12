@@ -1,0 +1,513 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buchproduktion mit n8n</title>
+<meta name="description" content="Sieben n8n-Workflows für die automatisierte Produktion von KDP-Ratgebern, interaktiv mit jedem Prompt und jeder Zeile Code.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;0,7..72,700;1,7..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --paper: #f5f6f3;
+  --sheet: #ffffff;
+  --ink: #1f2328;
+  --ink-soft: #5a6169;
+  --rule: #d6dad4;
+  --cyan: #0089bf;
+  --magenta: #c8106f;
+  --yellow: #f2c800;
+  --yellow-ink: #866a00;
+  --key: #1f2328;
+  --focus: #0089bf;
+  --dim: 0.22;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #16191c; --sheet: #1e2226; --ink: #e8ebee; --ink-soft: #a3aab2; --rule: #353b41;
+    --cyan: #45b8e8; --magenta: #f160ab; --yellow: #f2c800; --yellow-ink: #e9c846; --key: #e8ebee; --focus: #45b8e8;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #16191c; --sheet: #1e2226; --ink: #e8ebee; --ink-soft: #a3aab2; --rule: #353b41;
+  --cyan: #45b8e8; --magenta: #f160ab; --yellow: #f2c800; --yellow-ink: #e9c846; --key: #e8ebee; --focus: #45b8e8;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font-family: "Literata", Georgia, serif; font-size: 17px; line-height: 1.6;
+  font-optical-sizing: auto;
+}
+a { color: var(--cyan); text-underline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.wrap { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+
+header.top { padding-top: 56px; padding-bottom: 28px; }
+header.top h1 {
+  font-size: clamp(34px, 5.2vw, 58px); line-height: 1.04; margin: 0 0 18px;
+  font-weight: 700; letter-spacing: -0.015em; max-width: 14ch;
+}
+.lead { max-width: 62ch; margin: 0; color: var(--ink); font-size: 19px; line-height: 1.55; }
+.lead + p { max-width: 62ch; color: var(--ink-soft); margin: 14px 0 0; font-size: 16px; }
+
+/* Workflow-Auswahl */
+nav.wfs { display: flex; flex-wrap: wrap; gap: 22px 36px; padding: 22px 0 18px; border-top: 1px solid var(--rule); }
+.wfgroup { display: flex; flex-direction: column; gap: 6px; }
+.wfgroup > span { font-size: 13px; color: var(--ink-soft); font-style: italic; }
+.wfrow { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.wfrow .sep { display: inline-block; width: 14px; height: 1px; background: var(--ink-soft); margin: 0 2px; }
+.wfrow button {
+  font: inherit; font-size: 15px; background: none; border: 0; color: var(--ink);
+  padding: 4px 6px; cursor: pointer; border-radius: 3px; white-space: nowrap;
+}
+.wfrow button .nr { font-family: "IBM Plex Mono", monospace; font-size: 13px; color: var(--ink-soft); margin-right: 6px; }
+.wfrow button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.wfrow button[aria-pressed="true"] .nr { color: var(--paper); opacity: 0.75; }
+.wfrow button:hover:not([aria-pressed="true"]) { background: var(--sheet); }
+
+/* Arbeitsfläche */
+.stage { display: grid; grid-template-columns: minmax(0, 1fr) 400px; gap: 0; border: 1px solid var(--rule); background: var(--sheet); position: relative; }
+.canvas { position: relative; height: min(72vh, 720px); min-height: 420px; overflow: hidden; touch-action: none; cursor: grab;
+  background-image: radial-gradient(var(--rule) 1px, transparent 1px); background-size: 24px 24px; }
+.canvas.dragging { cursor: grabbing; }
+.canvas svg { width: 100%; height: 100%; display: block; }
+.crop { position: absolute; width: 22px; height: 22px; pointer-events: none; }
+.crop::before, .crop::after { content: ""; position: absolute; background: var(--ink-soft); }
+.crop::before { width: 22px; height: 1px; } .crop::after { width: 1px; height: 22px; }
+.crop.tl { left: 10px; top: 10px; } .crop.tr { right: 10px; top: 10px; transform: scaleX(-1); }
+.crop.bl { left: 10px; bottom: 10px; transform: scaleY(-1); } .crop.br { right: 10px; bottom: 10px; transform: scale(-1,-1); }
+.tools { position: absolute; right: 18px; bottom: 16px; display: flex; gap: 4px; }
+.tools button { font: inherit; font-size: 14px; min-width: 36px; height: 34px; padding: 0 10px; border: 1px solid var(--rule); background: var(--sheet); color: var(--ink); border-radius: 3px; cursor: pointer; }
+.tools button:hover { border-color: var(--ink-soft); }
+.legend { position: absolute; left: 18px; bottom: 14px; display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 13px; color: var(--ink-soft); pointer-events: none; background: color-mix(in srgb, var(--sheet) 85%, transparent); padding: 4px 8px; border-radius: 3px; }
+.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+
+/* Nodes */
+.edge { fill: none; stroke: var(--ink-soft); stroke-width: 1.6; opacity: 0.7; }
+.edge.ai { stroke: var(--magenta); stroke-dasharray: 5 4; opacity: 0.6; }
+.node { cursor: pointer; }
+.node .box { fill: var(--sheet); stroke-width: 2.4; }
+.node .abbr { font-family: "Literata", Georgia, serif; font-weight: 600; font-size: 21px; text-anchor: middle; dominant-baseline: central; }
+.node .label { font-family: "Literata", Georgia, serif; font-size: 16px; fill: var(--ink); text-anchor: middle; }
+.node .flag { font-family: "IBM Plex Mono", monospace; font-size: 12px; fill: var(--ink-soft); text-anchor: middle; }
+.node.c-ki .box { stroke: var(--magenta); } .node.c-ki .abbr { fill: var(--magenta); }
+.node.c-daten .box { stroke: var(--cyan); } .node.c-daten .abbr { fill: var(--cyan); }
+.node.c-extern .box { stroke: var(--yellow); fill: color-mix(in srgb, var(--yellow) 14%, var(--sheet)); } .node.c-extern .abbr { fill: var(--yellow-ink); }
+.node.c-logik .box { stroke: var(--key); } .node.c-logik .abbr { fill: var(--key); }
+.node.disabled { opacity: 0.45; } .node.disabled .box { stroke-dasharray: 4 3; }
+.node:hover .box, .node:focus-visible .box { stroke-width: 3.6; }
+.node:focus { outline: none; }
+.node.selected .box { stroke-width: 4.2; }
+svg.has-hl .node:not(.hl), svg.has-hl .edge { opacity: var(--dim); }
+svg.has-hl .node.hl .box { stroke-width: 4.2; }
+.halo { fill: none; stroke: var(--magenta); stroke-width: 2; opacity: 0.0; }
+.node.hl .halo { opacity: 0.55; }
+
+/* Inspektor */
+aside.insp { border-left: 1px solid var(--rule); display: flex; flex-direction: column; min-height: 0; height: min(72vh, 720px); min-height: 420px; }
+.insp-head { padding: 20px 22px 14px; border-bottom: 1px solid var(--rule); }
+.insp-head h2 { margin: 0; font-size: 21px; line-height: 1.25; font-weight: 600; overflow-wrap: anywhere; }
+.insp-head p { margin: 6px 0 0; font-size: 14px; color: var(--ink-soft); }
+.insp-head .chip { display: inline-block; font-size: 13px; padding: 1px 8px; border-radius: 10px; border: 1px solid currentColor; margin: 8px 6px 0 0; }
+.insp-body { padding: 16px 22px 22px; overflow: auto; flex: 1; }
+.insp-body h3 { font-size: 14px; font-weight: 600; margin: 14px 0 6px; color: var(--ink-soft); }
+.insp-body h3:first-child { margin-top: 0; }
+.insp-body p { font-size: 15px; margin: 0 0 10px; }
+pre.code { margin: 0; font-family: "IBM Plex Mono", monospace; font-size: 12.5px; line-height: 1.55; white-space: pre-wrap; word-break: break-word;
+  background: var(--paper); border: 1px solid var(--rule); padding: 12px 14px; border-radius: 3px; tab-size: 2; }
+.stats { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 15px; margin: 0 0 14px; }
+.stats dt { font-variant-numeric: tabular-nums; font-weight: 600; text-align: right; }
+.stats dd { margin: 0; color: var(--ink-soft); }
+
+/* Was schiefging */
+section.lessons { padding: 64px 0 24px; }
+section.lessons h2 { font-size: clamp(28px, 3.6vw, 40px); margin: 0 0 8px; line-height: 1.1; letter-spacing: -0.01em; }
+section.lessons > .wrap > p { max-width: 62ch; color: var(--ink-soft); margin: 0 0 30px; }
+.lesson-list { list-style: none; margin: 0; padding: 0; counter-reset: l; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 56px; }
+.lesson-list li { border-top: 2px solid var(--ink); padding: 18px 0 30px; }
+.lesson-list h3 { font-size: 21px; line-height: 1.3; margin: 0 0 10px; font-weight: 600; }
+.lesson-list p { margin: 0 0 12px; max-width: 60ch; }
+.lesson-list p.fix { color: var(--ink-soft); font-size: 16px; }
+.show { font: inherit; font-size: 15px; background: none; color: var(--magenta); border: 1px solid var(--magenta); border-radius: 3px; padding: 5px 12px; cursor: pointer; }
+.show:hover { background: var(--magenta); color: var(--sheet); }
+footer { padding: 30px 0 60px; color: var(--ink-soft); font-size: 15px; border-top: 1px solid var(--rule); margin-top: 20px; }
+
+@media (max-width: 960px) {
+  .stage { grid-template-columns: 1fr; }
+  aside.insp { border-left: 0; border-top: 1px solid var(--rule); height: auto; min-height: 0; max-height: 70vh; }
+  .canvas { height: 62vh; min-height: 360px; }
+  .lesson-list { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .wrap { padding: 0 16px; }
+  header.top { padding-top: 36px; }
+  .lead { font-size: 17px; }
+  .legend { display: none; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .canvas svg .vp { transition: none; }
+}
+</style>
+</head>
+<body>
+<header class="top wrap">
+  <h1>Buchproduktion mit n8n</h1>
+  <p class="lead">Sieben Workflows mit zusammen 200 Nodes, von der Themenrecherche über das Manuskript bis zum druckfertigen Cover. So, wie sie produktiv laufen, mit jedem Prompt und jeder Zeile Code.</p>
+  <p>Ersetzt sind nur IDs, Adressen und Autorennamen. Klick auf einen Node zeigt seinen Inhalt, ziehen verschiebt die Fläche, das Mausrad zoomt. <a id="repolink" href="#">Quelltext und README auf GitHub</a></p>
+</header>
+
+<main>
+  <div class="wrap">
+    <nav class="wfs" aria-label="Workflow auswählen" id="wfnav"></nav>
+    <div class="stage">
+      <div class="canvas" id="canvas">
+        <svg id="svg" role="img" aria-label="Workflow-Graph"><g class="vp" id="vp"></g></svg>
+        <span class="crop tl"></span><span class="crop tr"></span><span class="crop bl"></span><span class="crop br"></span>
+        <div class="legend" aria-hidden="true">
+          <span><i style="background:var(--magenta)"></i>KI</span>
+          <span><i style="background:var(--cyan)"></i>Google</span>
+          <span><i style="background:var(--yellow)"></i>Externe API</span>
+          <span><i style="background:var(--key)"></i>Logik und Code</span>
+        </div>
+        <div class="tools">
+          <button type="button" id="zin" aria-label="Hineinzoomen">+</button>
+          <button type="button" id="zout" aria-label="Herauszoomen">−</button>
+          <button type="button" id="fit">Einpassen</button>
+        </div>
+      </div>
+      <aside class="insp" id="insp" aria-live="polite">
+        <div class="insp-head" id="insphead"></div>
+        <div class="insp-body" id="inspbody"></div>
+      </aside>
+    </div>
+  </div>
+
+  <section class="lessons" id="lessons">
+    <div class="wrap">
+      <h2>Was schiefging</h2>
+      <p>Vier Fehler aus dem Betrieb. Der Knopf darunter springt im Graphen an die Stelle, an der die Lösung heute steckt.</p>
+      <ol class="lesson-list" id="lessonlist"></ol>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">Gebaut und betrieben nebenberuflich seit März 2026. Stack: n8n self-hosted, Claude API, Tavily, Recraft, CloudConvert, Gotenberg, Google Workspace, Etsy API.</div>
+</footer>
+
+<script src="data/workflows.js"></script>
+<script>
+(function () {
+  'use strict';
+  var REPO_URL = 'https://github.com/flonoe77/buchproduktion-n8n';
+  document.getElementById('repolink').href = REPO_URL;
+
+  var WFS = window.WORKFLOWS || [];
+  var byKey = {};
+  WFS.forEach(function (w) { byKey[w.key] = w; });
+
+  var LESSONS = [
+    { t: 'Ein Workflow mit 95 Nodes, und jeder Fehler kostete doppelt',
+      p: 'Die erste Version war ein einziger Workflow. Ein Retry startete wieder bei Node 1: Recherche, Kapitel und Bilder wurden erneut erzeugt und erneut bezahlt.',
+      f: 'Heute: getrennte Stufen, die über ein Sheet gekoppelt sind, und ein System-Workflow, der eine abgebrochene Ausführung über die n8n-API am fehlgeschlagenen Node fortsetzt.',
+      wf: 'execution-fortsetzen', hl: ['Execution fortsetzen', 'Token und ID pruefen'] },
+    { t: 'Der Prüfkreis lief, kostete Geld und hatte keine Wirkung',
+      p: 'Jedes Kapitel prüft ein Kontroll-Agent, ein Fix-Agent korrigiert. Der Node danach gab aber immer den Text des Schreib-Agenten weiter. Jede Korrektur wurde bezahlt und verworfen. Nach der Reparatur zeigte sich, dass der Kreis keine Abbruchbedingung hatte.',
+      f: 'Heute: Der Korrektur-Zähler begrenzt die Runden pro Kapitel, der Prüf-Prompt kennt nur drei objektiv prüfbare Fehlerarten, und eine Statistik protokolliert jede Korrektur.',
+      wf: '02-manuskript-produktion', hl: ['Kontroll-Agent', 'Fix-Agent', 'Korrektur-Zaehler', 'Edit Fields2', 'Kontroll-Statistik', 'If'] },
+    { t: 'Alles grün, Ergebnis trotzdem falsch',
+      p: 'Zwei Testläufe endeten grün. Beim Öffnen der Dateien: Aufzählungen als Fließtext, ein zerrissener Satz im Klappentext, der Autorname nur an 2 von 7 Stellen ersetzt. Dreimal derselbe Denkfehler: ein Zeichen als Struktur behandelt, obwohl es keine ist.',
+      f: 'Heute: Normalisierung vor der Konvertierung und eine Ersetzung, die Word-Absätze als Ganzes liest. Und die Regel, nach jedem Lauf die Dateien zu öffnen.',
+      wf: '02-manuskript-produktion', hl: ['Aufzaehlungen normalisieren', 'Print-Titelei Platzhalter', 'E-Book-Titelei Platzhalter'] },
+    { t: 'Ein Fehler, der still geblieben wäre',
+      p: 'Die Buch-ID wurde beim Start berechnet, geschrieben wird oft Stunden später nach der Titelwahl. Drei versetzte Starts hätten dieselbe ID gezogen und drei Bücher ohne Fehlermeldung vermischt.',
+      f: 'Heute: Die ID wird unmittelbar vor dem Schreiben neu gelesen. Gefunden vor dem ersten Parallellauf, nie eingetreten.',
+      wf: '01-recherche-und-titelwahl', hl: ['Buch-IDs neu lesen', 'Append Buch-Master'] }
+  ];
+
+  // ---------- Kategorien ----------
+  function shortType(t) { return String(t || '').split('.').pop(); }
+  var KI = /^(agent|lmChat|anthropic|outputParser|memory|toolWorkflow|chainLlm|embeddings)/;
+  var DATEN = /^(googleSheets|googleDrive|googleDocs|gmail)/;
+  var EXTERN = /^(httpRequest|tavily)/;
+  var SUB = /^(lmChat|outputParser|memory|toolWorkflow|embeddings)/;
+  function category(n) {
+    var s = shortType(n.type);
+    if (KI.test(s)) return 'ki';
+    if (DATEN.test(s)) return 'daten';
+    if (EXTERN.test(s) || /tavily/i.test(n.type)) return 'extern';
+    return 'logik';
+  }
+  var CAT_LABEL = { ki: 'KI', daten: 'Google', extern: 'Externe API', logik: 'Logik und Code' };
+  var ABBR = {
+    agent: 'Agent', lmChatAnthropic: 'Claude', anthropic: 'Claude', outputParserStructured: 'Schema', memoryBufferWindow: 'Memory',
+    toolWorkflow: 'Tool', googleSheets: 'Sheets', googleDrive: 'Drive', googleDocs: 'Docs', gmail: 'Mail', httpRequest: 'HTTP',
+    code: 'JS', if: 'Wenn', set: 'Set', merge: 'Merge', aggregate: 'Agg', splitInBatches: 'Loop', splitOut: 'Split', wait: 'Warten',
+    convertToFile: 'Datei', extractFromFile: 'Lesen', compression: 'ZIP', executeWorkflow: 'Start', executeWorkflowTrigger: 'Ein',
+    formTrigger: 'Form', form: 'Form', errorTrigger: 'Fehler', webhook: 'Hook', tavily: 'Suche'
+  };
+  function abbr(n) { var s = shortType(n.type); return ABBR[s] || s.slice(0, 5); }
+  function isTrigger(n) { return /Trigger$|webhook$/i.test(shortType(n.type)); }
+  function isSub(n) { return SUB.test(shortType(n.type)); }
+
+  // ---------- Navigation ----------
+  var nav = document.getElementById('wfnav');
+  var groups = [['chain', 'Buchkette, startet sich gegenseitig'], ['manual', 'Per Formular bei Bedarf'], ['system', 'System']];
+  var navButtons = {};
+  groups.forEach(function (g) {
+    var box = document.createElement('div'); box.className = 'wfgroup';
+    var lab = document.createElement('span'); lab.textContent = g[1]; box.appendChild(lab);
+    var row = document.createElement('div'); row.className = 'wfrow ' + g[0];
+    WFS.filter(function (w) { return w.group === g[0]; }).forEach(function (w) {
+      var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-pressed', 'false');
+      if (w.nr) { var nr = document.createElement('span'); nr.className = 'nr'; nr.textContent = w.nr; b.appendChild(nr); }
+      b.appendChild(document.createTextNode(w.title));
+      b.addEventListener('click', function () { show(w.key, null); });
+      if (g[0] === 'chain' && row.childNodes.length) { var sp = document.createElement('span'); sp.className = 'sep'; sp.setAttribute('aria-hidden', 'true'); row.appendChild(sp); }
+      row.appendChild(b); navButtons[w.key] = b;
+    });
+    box.appendChild(row); nav.appendChild(box);
+  });
+
+  // ---------- Zeichnen ----------
+  var svg = document.getElementById('svg');
+  var vp = document.getElementById('vp');
+  var NS = 'http://www.w3.org/2000/svg';
+  var W = 100, H = 100, R = 38;
+  var current = null, bounds = null, view = { x: 0, y: 0, w: 1000, h: 600 }, nodeEls = {};
+
+  function el(tag, attrs, parent) {
+    var e = document.createElementNS(NS, tag);
+    for (var k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.appendChild(e);
+    return e;
+  }
+  function geom(n) {
+    var x = n.position[0], y = n.position[1];
+    if (isSub(n)) return { cx: x + R, cy: y + R, l: x, r: x + 2 * R, t: y, b: y + 2 * R };
+    return { cx: x + W / 2, cy: y + H / 2, l: x, r: x + W, t: y, b: y + H };
+  }
+  function trunc(s, n) { s = String(s); return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+
+  function draw(wf) {
+    while (vp.firstChild) vp.removeChild(vp.firstChild);
+    nodeEls = {};
+    var g = {}, minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    wf.nodes.forEach(function (n) {
+      var q = geom(n); g[n.name] = q;
+      minX = Math.min(minX, q.l); minY = Math.min(minY, q.t); maxX = Math.max(maxX, q.r); maxY = Math.max(maxY, q.b + 40);
+    });
+    bounds = { x: minX - 60, y: minY - 60, w: (maxX - minX) + 120, h: (maxY - minY) + 120 };
+    var edges = el('g', {}, vp);
+    Object.keys(wf.connections || {}).forEach(function (src) {
+      var outs = wf.connections[src];
+      Object.keys(outs).forEach(function (kind) {
+        (outs[kind] || []).forEach(function (list, oi) {
+          (list || []).forEach(function (c) {
+            var a = g[src], b = g[c.node]; if (!a || !b) return;
+            var d, cls = 'edge';
+            if (kind === 'main') {
+              var nOut = outs.main.length, y1 = a.t + (H / (nOut + 1)) * (oi + 1);
+              var x1 = a.r, x2 = b.l, y2 = b.cy, dx = Math.max(40, Math.abs(x2 - x1) / 2);
+              if (x2 < x1) dx = Math.max(120, (x1 - x2) / 2);
+              d = 'M' + x1 + ',' + y1 + ' C' + (x1 + dx) + ',' + y1 + ' ' + (x2 - dx) + ',' + y2 + ' ' + x2 + ',' + y2;
+            } else {
+              cls = 'edge ai';
+              d = 'M' + a.cx + ',' + a.t + ' C' + a.cx + ',' + (a.t - 40) + ' ' + b.cx + ',' + (b.b + 40) + ' ' + b.cx + ',' + b.b;
+            }
+            var p = el('path', { d: d, 'class': cls }, edges);
+            p.dataset.from = src; p.dataset.to = c.node;
+          });
+        });
+      });
+    });
+    var nodesG = el('g', {}, vp);
+    wf.nodes.forEach(function (n) {
+      var q = g[n.name], cat = category(n);
+      var cls = 'node c-' + cat + (n.disabled ? ' disabled' : '');
+      var ng = el('g', { 'class': cls, tabindex: '0', role: 'button', 'aria-label': n.name + ', ' + CAT_LABEL[cat] }, nodesG);
+      if (isSub(n)) {
+        el('circle', { 'class': 'halo', cx: q.cx, cy: q.cy, r: R + 8 }, ng);
+        el('circle', { 'class': 'box', cx: q.cx, cy: q.cy, r: R }, ng);
+      } else {
+        el('rect', { 'class': 'halo', x: q.l - 8, y: q.t - 8, width: W + 16, height: H + 16, rx: isTrigger(n) ? 30 : 14 }, ng);
+        var rx = isTrigger(n) ? 26 : 8;
+        el('rect', { 'class': 'box', x: q.l, y: q.t, width: W, height: H, rx: rx }, ng);
+      }
+      var t = el('text', { 'class': 'abbr', x: q.cx, y: q.cy }, ng); t.textContent = abbr(n);
+      var lab = el('text', { 'class': 'label', x: q.cx, y: q.b + 22 }, ng); lab.textContent = trunc(n.name, 22);
+      var flags = [];
+      if (n.retryOnFail) flags.push('retry ' + (n.maxTries || 3) + '×');
+      if (n.disabled) flags.push('deaktiviert');
+      if (flags.length) { var f = el('text', { 'class': 'flag', x: q.cx, y: q.b + 40 }, ng); f.textContent = flags.join(' · '); }
+      var tt = el('title', {}, ng); tt.textContent = n.name;
+      ng.addEventListener('click', function (ev) { ev.stopPropagation(); select(n.name); });
+      ng.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(n.name); } });
+      nodeEls[n.name] = ng;
+    });
+  }
+
+  // ---------- Ansicht ----------
+  function applyView() { svg.setAttribute('viewBox', view.x + ' ' + view.y + ' ' + view.w + ' ' + view.h); }
+  function fitTo(b) {
+    var r = svg.getBoundingClientRect(), ar = r.width / Math.max(1, r.height);
+    var w = b.w, h = b.h;
+    if (w / h > ar) h = w / ar; else w = h * ar;
+    view = { x: b.x - (w - b.w) / 2, y: b.y - (h - b.h) / 2, w: w, h: h }; applyView();
+  }
+  function fit() {
+    if (!bounds) return;
+    var r = svg.getBoundingClientRect();
+    // Auf schmalen Bildschirmen den Anfang des Workflows lesbar zeigen statt alles winzig
+    if (r.width < 640 && bounds.w > 1100) { fitTo({ x: bounds.x, y: bounds.y, w: 1000, h: bounds.h }); return; }
+    fitTo(bounds);
+  }
+  function zoom(f, cx, cy) {
+    var r = svg.getBoundingClientRect();
+    if (cx == null) { cx = r.left + r.width / 2; cy = r.top + r.height / 2; }
+    var px = view.x + (cx - r.left) / r.width * view.w, py = view.y + (cy - r.top) / r.height * view.h;
+    var nw = Math.min(Math.max(view.w * f, 250), 30000), k = nw / view.w;
+    view = { x: px - (px - view.x) * k, y: py - (py - view.y) * k, w: nw, h: view.h * k }; applyView();
+  }
+  document.getElementById('zin').addEventListener('click', function () { zoom(0.75); });
+  document.getElementById('zout').addEventListener('click', function () { zoom(1.33); });
+  document.getElementById('fit').addEventListener('click', fit);
+  svg.addEventListener('wheel', function (e) { e.preventDefault(); zoom(e.deltaY > 0 ? 1.12 : 0.89, e.clientX, e.clientY); }, { passive: false });
+  var canvas = document.getElementById('canvas'), drag = null;
+  svg.addEventListener('pointerdown', function (e) {
+    if (e.target.closest && e.target.closest('.node')) return;
+    drag = { x: e.clientX, y: e.clientY, vx: view.x, vy: view.y, moved: false }; canvas.classList.add('dragging');
+    svg.setPointerCapture(e.pointerId);
+  });
+  svg.addEventListener('pointermove', function (e) {
+    if (!drag) return;
+    var r = svg.getBoundingClientRect(), dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+    view.x = drag.vx - dx / r.width * view.w; view.y = drag.vy - dy / r.height * view.h; applyView();
+  });
+  function endDrag() { if (drag && !drag.moved) clearHl(); drag = null; canvas.classList.remove('dragging'); }
+  svg.addEventListener('pointerup', endDrag); svg.addEventListener('pointercancel', endDrag);
+  window.addEventListener('resize', function () { if (bounds) fit(); });
+
+  // ---------- Hervorheben ----------
+  function clearHl() {
+    svg.classList.remove('has-hl');
+    Object.keys(nodeEls).forEach(function (k) { nodeEls[k].classList.remove('hl'); });
+  }
+  function highlight(names) {
+    clearHl(); if (!names || !names.length) return;
+    var found = names.filter(function (n) { return nodeEls[n]; });
+    if (!found.length) return;
+    svg.classList.add('has-hl');
+    found.forEach(function (n) { nodeEls[n].classList.add('hl'); });
+    var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    current.nodes.forEach(function (n) {
+      if (found.indexOf(n.name) === -1) return;
+      var q = geom(n); minX = Math.min(minX, q.l); minY = Math.min(minY, q.t); maxX = Math.max(maxX, q.r); maxY = Math.max(maxY, q.b + 40);
+    });
+    var pad = 260; fitTo({ x: minX - pad, y: minY - pad, w: maxX - minX + 2 * pad, h: maxY - minY + 2 * pad });
+    select(found[0], true);
+  }
+
+  // ---------- Inspektor ----------
+  var head = document.getElementById('insphead'), body = document.getElementById('inspbody');
+  function clear(e) { while (e.firstChild) e.removeChild(e.firstChild); }
+  function h(tag, text, cls) { var e = document.createElement(tag); if (text != null) e.textContent = text; if (cls) e.className = cls; return e; }
+  function codeBlock(title, text) { body.appendChild(h('h3', title)); body.appendChild(h('pre', text, 'code')); }
+
+  function workflowSummary(wf) {
+    clear(head); clear(body);
+    head.appendChild(h('h2', (wf.nr ? wf.nr + ' ' : '') + wf.title));
+    var a = h('p'); var link = h('a', wf.file); link.href = REPO_URL + '/blob/main/' + wf.file; a.appendChild(link); head.appendChild(a);
+    var ki = wf.nodes.filter(function (n) { return category(n) === 'ki'; }).length;
+    var code = wf.nodes.filter(function (n) { return shortType(n.type) === 'code'; }).length;
+    var retry = wf.nodes.filter(function (n) { return n.retryOnFail; }).length;
+    var dl = h('dl', null, 'stats');
+    [[wf.nodes.length, 'Nodes'], [ki, 'KI-Nodes inklusive Modell und Schema'], [code, 'Code-Nodes mit eigenem JavaScript'], [retry, 'Nodes mit automatischem Retry']].forEach(function (r) {
+      dl.appendChild(h('dt', String(r[0]))); dl.appendChild(h('dd', r[1]));
+    });
+    body.appendChild(dl);
+    body.appendChild(h('p', 'Klick auf einen Node zeigt Code, Prompt oder Konfiguration.'));
+  }
+
+  function nodeDetails(n) {
+    clear(head); clear(body);
+    var cat = category(n);
+    head.appendChild(h('h2', n.name));
+    head.appendChild(h('p', shortType(n.type)));
+    var chip = h('span', CAT_LABEL[cat], 'chip');
+    chip.style.color = { ki: 'var(--magenta)', daten: 'var(--cyan)', extern: 'var(--yellow-ink)', logik: 'var(--ink)' }[cat];
+    head.appendChild(chip);
+    if (n.retryOnFail) head.appendChild(h('span', 'Retry ' + (n.maxTries || 3) + '×', 'chip'));
+    if (n.disabled) head.appendChild(h('span', 'deaktiviert', 'chip'));
+    if (n.onError) head.appendChild(h('span', 'onError: ' + n.onError, 'chip'));
+
+    var p = n.parameters || {}, shown = false;
+    if (p.jsCode) { codeBlock('JavaScript', p.jsCode); shown = true; }
+    var opt = p.options || {};
+    if (opt.systemMessage) { codeBlock('System-Prompt', opt.systemMessage); shown = true; }
+    if (p.text) { codeBlock('Prompt', p.text); shown = true; }
+    if (p.messages && p.messages.values) {
+      p.messages.values.forEach(function (m, i) { codeBlock('Nachricht ' + (i + 1) + (m.role ? ' (' + m.role + ')' : ''), m.content || ''); });
+      shown = true;
+    }
+    if (p.jsonSchemaExample || p.inputSchema) { codeBlock('Ausgabe-Schema', p.jsonSchemaExample || p.inputSchema); shown = true; }
+    if (p.url) { codeBlock((p.method || 'GET') + ' URL', p.url); shown = true; }
+    if (p.jsonBody) { codeBlock('Body', p.jsonBody); shown = true; }
+    if (p.conditions && p.conditions.conditions) {
+      var lines = p.conditions.conditions.map(function (c) {
+        return String(c.leftValue) + '  ' + (c.operator && c.operator.operation) + '  ' + (c.rightValue == null ? '' : c.rightValue);
+      });
+      codeBlock('Bedingung (' + (p.conditions.combinator || 'and') + ')', lines.join('\n')); shown = true;
+    }
+    var rest = {};
+    Object.keys(p).forEach(function (k) {
+      if (['jsCode', 'text', 'messages', 'url', 'jsonBody', 'conditions', 'jsonSchemaExample', 'inputSchema'].indexOf(k) !== -1) return;
+      if (k === 'options' && opt.systemMessage) {
+        var o = {}; Object.keys(opt).forEach(function (x) { if (x !== 'systemMessage') o[x] = opt[x]; });
+        if (Object.keys(o).length) rest.options = o; return;
+      }
+      rest[k] = p[k];
+    });
+    if (Object.keys(rest).length) codeBlock(shown ? 'Weitere Parameter' : 'Parameter', JSON.stringify(rest, null, 2));
+    if (!Object.keys(p).length) body.appendChild(h('p', 'Dieser Node hat keine eigene Konfiguration.'));
+    body.scrollTop = 0;
+  }
+
+  function select(name, keepHl) {
+    Object.keys(nodeEls).forEach(function (k) { nodeEls[k].classList.toggle('selected', k === name); });
+    var n = current.nodes.filter(function (x) { return x.name === name; })[0];
+    if (n) nodeDetails(n);
+    if (!keepHl) clearHl();
+  }
+
+  function show(key, hl) {
+    var wf = byKey[key]; if (!wf) return;
+    current = wf;
+    Object.keys(navButtons).forEach(function (k) { navButtons[k].setAttribute('aria-pressed', String(k === key)); });
+    draw(wf); fit(); workflowSummary(wf);
+    if (hl) highlight(hl);
+    try { history.replaceState(null, '', '#' + key); } catch (e) {}
+  }
+
+  // ---------- Lektionen ----------
+  var ll = document.getElementById('lessonlist');
+  LESSONS.forEach(function (L) {
+    var li = document.createElement('li');
+    li.appendChild(h('h3', L.t)); li.appendChild(h('p', L.p)); li.appendChild(h('p', L.f, 'fix'));
+    var b = h('button', 'Im Workflow zeigen', 'show'); b.type = 'button';
+    b.addEventListener('click', function () {
+      show(L.wf, L.hl);
+      document.getElementById('wfnav').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    });
+    li.appendChild(b); ll.appendChild(li);
+  });
+
+  var start = (location.hash || '').slice(1);
+  show(byKey[start] ? start : '02-manuskript-produktion', null);
+})();
+</script>
+</body>
+</html>

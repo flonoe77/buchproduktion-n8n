@@ -1,0 +1,83 @@
+{
+  "name": "00 System – Fehler-Alarm",
+  "nodes": [
+    {
+      "id": "et",
+      "name": "Fehler abgefangen",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "cd",
+      "name": "Meldung bauen",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const j = $input.first().json || {};\nconst wf = j.workflow || {};\nconst ex = j.execution || {};\nconst err = ex.error || {};\n\n// Fehler aus einem aufgerufenen Sub-Workflow (z. B. WF03 unter WF02): Der Sub-Workflow\n// meldet sich selbst, der aufrufende Workflow soll keine zweite Mail schicken.\nif (err.workflowId && wf.id && String(err.workflowId) !== String(wf.id)) {\n  return [];\n}\n\nfunction esc(s) {\n  return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n}\n\nconst name = String(wf.name || 'Unbekannter Workflow');\nconst node = String(err.node && err.node.name ? err.node.name : (ex.lastNodeExecuted || 'unbekannt'));\nconst msg = String(err.message || 'Keine Fehlermeldung uebermittelt');\nconst desc = String(err.description || '');\nconst url = String(ex.url || '');\nconst zeit = new Date().toLocaleString('de-DE', { timeZone: 'Europe/Berlin' });\n\nconst html =\n  '<div style=\"font-family:Arial,Helvetica,sans-serif;max-width:640px\">' +\n  '<h2 style=\"font-size:18px;margin:0 0 4px 0;color:#b42318\">Workflow abgebrochen</h2>' +\n  '<p style=\"font-size:13px;color:#777;margin:0 0 16px 0\">' + esc(zeit) + '</p>' +\n  '<table style=\"border-collapse:collapse;font-size:13px\">' +\n  '<tr><td style=\"padding:6px 14px 6px 0;color:#777\">Workflow</td><td style=\"padding:6px 0\"><b>' + esc(name) + '</b></td></tr>' +\n  '<tr><td style=\"padding:6px 14px 6px 0;color:#777\">Node</td><td style=\"padding:6px 0\"><b>' + esc(node) + '</b></td></tr>' +\n  '</table>' +\n  '<div style=\"margin:16px 0;padding:12px;background:#fdf2f2;border-left:4px solid #b42318;font-size:13px\">' + esc(msg) + (desc ? '<br><br><span style=\"color:#555\">' + esc(desc) + '</span>' : '') + '</div>' +\n  (url ? '<p><a href=\"' + url + '\" style=\"background:#0b5cad;color:#ffffff;padding:10px 20px;border-radius:4px;text-decoration:none;font-size:14px\">Ausfuehrung in n8n oeffnen</a></p>' : '') +\n  '<p style=\"font-size:12px;color:#777\">Achtung: Ein erneuter Lauf startet den Workflow von vorn und wiederholt alle bereits erfolgten Schritte inklusive kostenpflichtiger API-Aufrufe. Lieber gezielt reparieren als blind neu starten.</p>' +\n  '</div>';\n\nreturn [{ json: { betreff: 'n8n-Fehler: ' + name + ' (' + node + ')', html: html } }];"
+      }
+    },
+    {
+      "id": "gm",
+      "name": "Fehlermail",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "sendTo": "you@example.com",
+        "subject": "={{ $json.betreff }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "CREDENTIAL_ID",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Fehler abgefangen": {
+      "main": [
+        [
+          {
+            "node": "Meldung bauen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Meldung bauen": {
+      "main": [
+        [
+          {
+            "node": "Fehlermail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Europe/Berlin",
+    "callerPolicy": "workflowsFromSameOwner"
+  }
+}

@@ -1,0 +1,285 @@
+{
+  "name": "04 Buch – Redaktionelle Freigabe",
+  "nodes": [
+    {
+      "id": "freigabe_form",
+      "name": "Freigabe Formular",
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "formTitle": "Redaktionelle Freigabe",
+        "formDescription": "Bitte erst ausfüllen, nachdem du das fertige Buch inhaltlich gelesen und geprüft hast.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "buch_id",
+              "fieldType": "text",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "geprueft",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Ja"
+                  },
+                  {
+                    "option": "Nein"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "aenderungen",
+              "fieldType": "textarea",
+              "requiredField": false
+            }
+          ]
+        },
+        "options": {
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "Danke! Freigabe wurde im Urheberschaft-Log vermerkt."
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "freigabe_lookup",
+      "name": "Log-Link holen",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "GOOGLE_FILE_ID",
+          "mode": "list",
+          "cachedResultName": "Buch-Master"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 0,
+          "mode": "list",
+          "cachedResultName": "Buch-Master"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "Buch-ID",
+              "lookupValue": "={{ $json.buch_id }}"
+            }
+          ]
+        },
+        "options": {
+          "returnFirstMatch": true
+        },
+        "range": "A:U"
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Sheets account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "freigabe_write",
+      "name": "Freigabe eintragen",
+      "type": "n8n-nodes-base.googleDocs",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "resource": "document",
+        "operation": "update",
+        "documentURL": "={{ $json['Urheberschaft-Log-Link'] }}",
+        "actionsUi": {
+          "actionFields": [
+            {
+              "object": "text",
+              "action": "replaceAll",
+              "text": "STATUS: [AUSSTEHEND - Freigabe-Formular noch nicht abgeschickt]",
+              "replaceText": "={{ 'Geprüft: ' + $('Freigabe Formular').item.json.geprueft + '\\nÄnderungen: ' + ($('Freigabe Formular').item.json.aenderungen || '(keine)') + '\\nZeitstempel: ' + $now.format('yyyy-MM-dd HH:mm') + '\\nGeprüft von: Herausgeber' }}"
+            }
+          ]
+        }
+      },
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "CREDENTIAL_ID",
+          "name": "Google Docs account"
+        }
+      },
+      "maxTries": 3,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000
+    },
+    {
+      "id": "etsy_if",
+      "name": "Freigegeben?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "fg1",
+              "leftValue": "={{ $('Freigabe Formular').first().json.geprueft }}",
+              "operator": {
+                "operation": "equals",
+                "type": "string"
+              },
+              "rightValue": "Ja"
+            }
+          ],
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "loose"
+          }
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "etsy_daten",
+      "name": "Etsy-Start-Daten",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        896,
+        -80
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e1",
+              "name": "buch_id",
+              "type": "string",
+              "value": "={{ String($('Freigabe Formular').first().json.buch_id).trim() }}"
+            },
+            {
+              "id": "e2",
+              "name": "quelle",
+              "type": "string",
+              "value": "WF04 Freigabe"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "etsy_exec",
+      "name": "→ WF09 Etsy starten",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        -80
+      ],
+      "parameters": {
+        "options": {
+          "waitForSubWorkflow": false
+        },
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "WF09_ID"
+        }
+      },
+      "disabled": true
+    }
+  ],
+  "connections": {
+    "Freigabe Formular": {
+      "main": [
+        [
+          {
+            "node": "Log-Link holen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log-Link holen": {
+      "main": [
+        [
+          {
+            "node": "Freigabe eintragen",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Freigabe eintragen": {
+      "main": [
+        [
+          {
+            "node": "Freigegeben?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Freigegeben?": {
+      "main": [
+        [
+          {
+            "node": "Etsy-Start-Daten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Etsy-Start-Daten": {
+      "main": [
+        [
+          {
+            "node": "→ WF09 Etsy starten",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "ERROR_WORKFLOW_ID"
+  }
+}
